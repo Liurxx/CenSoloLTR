@@ -1,0 +1,52 @@
+# =========================================================================
+# CenSoloLTR v1.1.0 — Conda Environment (Minimum Version Requirements)
+# =========================================================================
+# Create: conda env create -f environment_latest.yaml
+# Activate: conda activate censololtr
+#
+# All tool versions use >= (minimum) constraints, not exact pins.
+# conda/mamba will resolve the latest compatible versions.
+# =========================================================================
+name: censololtr
+channels:
+  - bioconda
+  - conda-forge
+  - defaults
+dependencies:
+  # === R base ===
+  - r-base >= 4.0
+
+  # === Core LTR Detection ===
+  - ltr_finder >= 1.07
+  - ltr_finder_parallel >= 1.4
+  - ltr_harvest_parallel >= 1.3
+  - genometools-genometools >= 1.6.6
+
+  # === LTR_retriever & SoloLTR ===
+  - ltr_retriever >= 3.0.5
+  - repeatmasker >= 4.2
+  - blast >= 2.9
+
+  # === Classification & Clustering ===
+  - tesorter >= 1.5.1
+  - cd-hit >= 4.6
+
+  # === Utilities ===
+  - seqtk >= 1.4
+  - samtools >= 1.9
+
+  # === Perl bio ===
+  - perl-bioperl
+
+  # === R packages (CRAN) ===
+  - r-optparse
+  - r-yaml
+  - r-dplyr
+  - r-stringr
+  - r-readr
+  - r-tidyr
+  - r-ggplot2
+  - r-scales
+
+  # === Bioconductor ===
+  - bioconductor-biostrings

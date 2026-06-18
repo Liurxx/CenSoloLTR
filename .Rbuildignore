@@ -1,0 +1,13 @@
+^CenSoloLTR\.Rcheck$
+^CenSoloLTR_.*\.tar\.gz$
+^\.git$
+^\.gitignore$
+^\.Rproj\.user$
+^README\.md$
+^LICENSE$
+^environment_latest\.yaml$
+^install_dependencies\.sh$
+^test/
+^tmp_
+^\.vscode$
+^\.idea$

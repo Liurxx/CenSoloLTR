@@ -1,0 +1,1 @@
+inst/extdata/fabaceae_db/Lsat/Lsat_NR_LTR_library.fasta filter=lfs diff=lfs merge=lfs -text

@@ -1,0 +1,54 @@
+Package: CenSoloLTR
+Type: Package
+Title: Genome-Centered SoloLTR Annotation Pipeline for Centromere Regions
+Version: 1.1.0
+Date: 2026-06-16
+Authors@R: c(
+    person("User", "Liurxx", role = c("aut", "cre"),
+           email = "liurxx@example.com"))
+Description: An integrated bioinformatics pipeline for de novo LTR
+    retrotransposon annotation, soloLTR detection, and centromere/pericentromere
+    region analysis. Starting from a genome FASTA file and centromere BED file,
+    the pipeline runs LTR_FINDER, LTR_HARVEST, LTR_retriever, TEsorter, CD-HIT,
+    and BLAST to produce comprehensive soloLTR classification, deep annotation
+    of CEN/Peri-CEN regions, FASTA sequence extraction, and publication-ready
+    stacked bar plots of LTR family composition.
+License: MIT + file LICENSE
+URL: https://github.com/user/CenSoloLTR
+BugReports: https://github.com/user/CenSoloLTR/issues
+Encoding: UTF-8
+RoxygenNote: 7.3.0
+Depends:
+    R (>= 4.0.0)
+Imports:
+    optparse,
+    yaml,
+    Biostrings,
+    dplyr,
+    stringr,
+    readr,
+    tidyr,
+    ggplot2,
+    scales,
+    svglite,
+    parallel
+Suggests:
+    knitr,
+    rmarkdown,
+    testthat (>= 3.0.0)
+SystemRequirements:
+    Perl (>= 5.10),
+    ltr_finder (>= 1.07),
+    LTR_FINDER_parallel (>= 1.4),
+    LTR_HARVEST_parallel (>= 1.3),
+    gt (genometools, >= 1.6.6),
+    LTR_retriever (>= 3.0.5),
+    TEsorter (>= 1.5.1),
+    RepeatMasker (>= 4.2),
+    seqtk (>= 1.4),
+    cd-hit (>= 4.6),
+    BLAST+ (>= 2.9),
+    samtools (>= 1.9)
+VignetteBuilder: knitr
+Biarch: yes
+NeedsCompilation: no

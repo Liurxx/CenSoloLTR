@@ -1,0 +1,51 @@
+# R package build artifacts
+*.o
+*.so
+*.dll
+CenSoloLTR.Rcheck/
+CenSoloLTR_*.tar.gz
+src/*.o
+src/*.so
+src/*.dll
+
+# R session data
+.Rproj.user/
+.Rhistory
+.RData
+.Ruserdata
+*.Rproj
+
+# Conda environments
+*.conda/
+
+# Test output
+test/output/*
+!test/output/.gitkeep
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Large data files
+*.fa
+*.fasta
+*.fna
+!inst/extdata/example/
+!inst/extdata/example/**
+*.fa.fai
+!inst/extdata/example/*.fa.fai
+# Fabaceae pre-built database (override *.fasta exclusion)
+!inst/extdata/fabaceae_db/
+!inst/extdata/fabaceae_db/**/*.fasta
+
+# Temporary files
+tmp_*
+*.tmp
+*.log

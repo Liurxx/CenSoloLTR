@@ -1,0 +1,23 @@
+#!/usr/bin/env bash
+# =========================================================================
+# CenSoloLTR — Genome-Centered SoloLTR Annotation Pipeline (exec wrapper)
+# =========================================================================
+# This script is installed alongside the R package as a fallback CLI entry.
+# The primary entry point is the symlink/copy installed into conda env bin/.
+#
+# Usage: CenSoloLTR -g genome.fa -c cen.bed -o ./output [options]
+#        CenSoloLTR -h
+#        CenSoloLTR -v
+# =========================================================================
+
+set -euo pipefail
+
+R_EXEC="${RSCRIPT:-Rscript}"
+if ! command -v "$R_EXEC" &>/dev/null; then
+    echo "Error: Rscript not found. Please install R or set RSCRIPT env var." >&2
+    exit 1
+fi
+
+# No -- separator: with Rscript -e, everything after the expression goes
+# directly to commandArgs(trailingOnly = TRUE) without prefix.
+exec "$R_EXEC" --no-save --no-restore -e "CenSoloLTR::run_pipeline()" "$@"
