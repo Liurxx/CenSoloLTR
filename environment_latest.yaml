@@ -6,9 +6,9 @@
 # =========================================================================
 name: censololtr
 channels:
-  - conda-forge
-  - bioconda
   - defaults
+  - bioconda
+  - conda-forge
 dependencies:
   # R base
   - r-base

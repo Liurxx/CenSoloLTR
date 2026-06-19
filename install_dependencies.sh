@@ -111,9 +111,9 @@ if [ ! -f "${ENV_YAML}" ]; then
     cat > "${ENV_YAML}" << 'EOF'
 name: censololtr
 channels:
-  - conda-forge
-  - bioconda
   - defaults
+  - bioconda
+  - conda-forge
 dependencies:
   # R base
   - r-base
