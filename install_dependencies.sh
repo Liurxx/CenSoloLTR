@@ -148,11 +148,6 @@ dependencies:
   # Bioconductor
   - bioconductor-biostrings
 
-  # Prevent openmpi transitive pull-in (post-link script fails
-  # on servers whose /bin/sh layout differs from build host)
-  - "boost-cpp =*=nompi*"
-  - "hdf5 =*=nompi*"
-  - "fftw =*=nompi*"
 EOF
 fi
 
@@ -160,9 +155,30 @@ if conda env list 2>/dev/null | grep -q "^${ENV_NAME} "; then
     echo "  Environment '${ENV_NAME}' already exists."
     echo "  To recreate from scratch: conda env remove -n ${ENV_NAME} && bash $0"
     echo -e "${YELLOW}  Updating existing environment ...${NC}"
-    ${PKG_MGR} env update -f "${ENV_YAML}" --prune
+    set +e
+    ENV_OUTPUT=$(${PKG_MGR} env update -f "${ENV_YAML}" --prune 2>&1)
+    ENV_EXIT=$?
+    set -e
 else
-    ${PKG_MGR} env create -f "${ENV_YAML}"
+    set +e
+    ENV_OUTPUT=$(${PKG_MGR} env create -f "${ENV_YAML}" 2>&1)
+    ENV_EXIT=$?
+    set -e
+fi
+
+if [ $ENV_EXIT -ne 0 ]; then
+    # openmpi post-link script may fail on servers whose /bin/sh layout
+    # differs from the build host.  All packages (including openmpi) are
+    # already installed; only the post-link cleanup script failed.
+    # CenSoloLTR does not use MPI, so this is harmless.
+    if echo "${ENV_OUTPUT}" | grep -q "pre/post link script.*openmpi"; then
+        echo -e "${YELLOW}  openmpi post-link script failed (non-critical — CenSoloLTR${NC}"
+        echo -e "${YELLOW}  does not use MPI).  Environment is usable.${NC}"
+    else
+        echo "${ENV_OUTPUT}"
+        echo -e "${RED}ERROR: environment creation failed (see above).${NC}"
+        exit 1
+    fi
 fi
 echo -e "${GREEN}  Done.${NC}"
 

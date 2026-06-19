@@ -3,11 +3,6 @@
 # =========================================================================
 # Create: mamba env create -f environment_latest.yaml
 # Activate: conda activate censololtr
-#
-# nompi variants are forced on boost-cpp / hdf5 / fftw to prevent
-# openmpi from being pulled in.  Its post-link script fails with
-# "No such file or directory" on servers whose /bin/sh layout
-# differs from the build host, and CenSoloLTR does not use MPI.
 # =========================================================================
 name: censololtr
 channels:
@@ -52,8 +47,3 @@ dependencies:
 
   # Bioconductor
   - bioconductor-biostrings
-
-  # ---- Prevent openmpi from transitive pull-in ----
-  - "boost-cpp =*=nompi*"
-  - "hdf5 =*=nompi*"
-  - "fftw =*=nompi*"
