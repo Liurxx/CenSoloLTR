@@ -170,8 +170,9 @@ if conda env list 2>/dev/null | grep -q "^${ENV_NAME} "; then
 fi
 
 if [ "${NEED_CREATE}" = true ]; then
+    echo -e "  Solving dependencies (may take 5-15 min, please wait) ..."
     set +e
-    ENV_OUTPUT=$(${PKG_MGR} env create -f "${ENV_YAML}" 2>&1)
+    ENV_OUTPUT=$(${PKG_MGR} env create -f "${ENV_YAML}" --strict-channel-priority 2>&1)
     ENV_EXIT=$?
     set -e
 
