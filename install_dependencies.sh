@@ -55,10 +55,15 @@ banner
 PKG_MGR=""
 if command -v mamba &>/dev/null; then
     PKG_MGR="mamba"
-    echo -e "${BLUE}mamba detected:${NC} $(mamba --version)"
+    MAMBA_VER=$(mamba --version 2>&1 || true)
+    echo -e "${BLUE}mamba detected:${NC} ${MAMBA_VER}"
+    # Show solver type
+    MAMBA_SOLVER=$(mamba info 2>/dev/null | grep -i "solver\|libmamba" || echo "  (libmamba solver)")
+    echo -e "  Solver: ${MAMBA_SOLVER}"
 elif command -v conda &>/dev/null; then
     PKG_MGR="conda"
-    echo -e "${YELLOW}conda detected:${NC} $(conda --version)"
+    CONDA_VER=$(conda --version 2>&1)
+    echo -e "${YELLOW}conda detected:${NC} ${CONDA_VER}"
     echo -e "${YELLOW}  (mamba not found — install 'mamba' for faster solving: conda install -n base -c conda-forge mamba)${NC}"
 else
     echo -e "${RED}ERROR: neither mamba nor conda found in PATH.${NC}"
@@ -106,8 +111,8 @@ if [ ! -f "${ENV_YAML}" ]; then
     cat > "${ENV_YAML}" << 'EOF'
 name: censololtr
 channels:
-  - bioconda
   - conda-forge
+  - bioconda
   - defaults
 dependencies:
   # R base
@@ -171,9 +176,63 @@ fi
 
 if [ "${NEED_CREATE}" = true ]; then
     echo -e "  Solving dependencies (may take 5-15 min, please wait) ..."
+
+    # ---- Network check: verify channel repos are reachable ----
+    echo -n "  Checking channel connectivity ... "
+    CHANNEL_TEST=$(conda search -c conda-forge --repodata-fn current_repodata.json r-base 2>&1 | head -5 || true)
+    if echo "${CHANNEL_TEST}" | grep -q "r-base"; then
+        echo -e "${GREEN}OK${NC}"
+    else
+        echo -e "${YELLOW}slow/unreachable${NC}"
+        echo -e "${YELLOW}  Network to conda-forge may be slow. If behind a firewall,${NC}"
+        echo -e "${YELLOW}  consider configuring a mirror:${NC}"
+        echo -e "${YELLOW}    conda config --add channels https://mirrors.tuna.tsinghua.edu.cn/anaconda/cloud/conda-forge${NC}"
+    fi
+
+    # Detect glibc version.  If system glibc is older than 2.28 (e.g. CentOS 7
+    # with glibc 2.17), conda-forge packages compiled for __glibc >=2.28 will
+    # fail to solve.  Setting CONDA_OVERRIDE_GLIBC tricks the solver into
+    # accepting them.  Most bioinformatics CLI tools do not use newer glibc
+    # symbols at runtime — this override is safe in practice.
+    SYSTEM_GLIBC=""
+    if command -v ldd &>/dev/null; then
+        SYSTEM_GLIBC=$(ldd --version 2>&1 | head -1 | grep -oP '[\d]+\.[\d]+' | head -1 || true)
+    fi
+    if [ -n "${SYSTEM_GLIBC}" ]; then
+        GLIBC_MAJOR=$(echo "${SYSTEM_GLIBC}" | cut -d. -f1)
+        GLIBC_MINOR=$(echo "${SYSTEM_GLIBC}" | cut -d. -f2)
+        if [ "${GLIBC_MAJOR}" -lt 2 ] || { [ "${GLIBC_MAJOR}" -eq 2 ] && [ "${GLIBC_MINOR}" -lt 28 ]; }; then
+            echo -e "${YELLOW}  System glibc ${SYSTEM_GLIBC} < 2.28 detected.${NC}"
+            echo -e "${YELLOW}  Setting CONDA_OVERRIDE_GLIBC=2.28 to bypass conda-forge __glibc constraint.${NC}"
+            export CONDA_OVERRIDE_GLIBC="2.28"
+        fi
+    else
+        echo -e "${YELLOW}  Cannot detect glibc version; setting CONDA_OVERRIDE_GLIBC=2.28 as fallback.${NC}"
+        export CONDA_OVERRIDE_GLIBC="2.28"
+    fi
+
+    # Run solver with real-time output via temp file + spinner, so the user
+    # can see progress instead of staring at a blank screen.
+    ENV_LOG="/tmp/censololtr_env_$$.log"
+    echo -n "  Solving ... "
     set +e
-    ENV_OUTPUT=$(${PKG_MGR} env create -f "${ENV_YAML}" --strict-channel-priority 2>&1)
+    ${PKG_MGR} env create -f "${ENV_YAML}" --verbose > "${ENV_LOG}" 2>&1 &
+    MAMBA_PID=$!
+
+    # Spinner: rotates while mamba runs
+    SPIN='-\|/'
+    while kill -0 ${MAMBA_PID} 2>/dev/null; do
+        for i in $(seq 0 3); do
+            echo -ne "\r  Solving ... ${SPIN:$i:1} (pid ${MAMBA_PID})"
+            sleep 0.5
+        done
+    done
+    echo -ne "\r  Solving ... done.          \n"
+
+    wait ${MAMBA_PID}
     ENV_EXIT=$?
+    ENV_OUTPUT=$(cat "${ENV_LOG}")
+    rm -f "${ENV_LOG}"
     set -e
 
     if [ $ENV_EXIT -ne 0 ]; then
