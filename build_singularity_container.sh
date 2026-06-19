@@ -186,25 +186,20 @@ build_via_sandbox() {
         exit 1
     fi
 
-    # Step 2: Write and run post-install script
+    # Step 2: Write post-install script and run it inside the sandbox
     echo ""
     echo -e "${BLUE}[2/3] Installing dependencies inside sandbox (5-20 min) ...${NC}"
     write_post_install_script "${POST_SCRIPT}"
     chmod +x "${POST_SCRIPT}"
 
-    # Ensure /tmp exists inside the sandbox
-    mkdir -p "${SANDBOX_DIR}/tmp"
-
-    # Copy CenSoloLTR source
-    local SRC_COPY="${SANDBOX_DIR}/tmp/CenSoloLTR_src"
-    rm -rf "${SRC_COPY}"
-    cp -r "${CENSOLOLTR_SRC}" "${SRC_COPY}"
-
-    # Copy post_install script into the sandbox
-    cp "${POST_SCRIPT}" "${SANDBOX_DIR}/tmp/post_install.sh"
-
-    # Run the installation
-    singularity exec --writable "${SANDBOX_DIR}" /bin/bash /tmp/post_install.sh
+    # Use --bind to inject the script and CenSoloLTR source into the container.
+    # This is more reliable than copying files into the sandbox directory,
+    # which may have unexpected internal structure across Singularity versions.
+    singularity exec --writable \
+        --bind "${POST_SCRIPT}:/tmp/post_install.sh:ro" \
+        --bind "${CENSOLOLTR_SRC}:/tmp/CenSoloLTR_src:ro" \
+        "${SANDBOX_DIR}" \
+        /bin/bash /tmp/post_install.sh
 
     # Step 3: Convert to final SIF
     echo ""
@@ -427,10 +422,11 @@ conda activate ${ENV_NAME}
 if [ -f /tmp/CenSoloLTR_src/DESCRIPTION ]; then
     R CMD INSTALL --no-multiarch /tmp/CenSoloLTR_src
 fi
+# Note: /tmp/CenSoloLTR_src is a bind mount (read-only), do not remove
 
 # --- Cleanup ---
 apt-get clean
-rm -rf /var/lib/apt/lists/* /tmp/*
+rm -rf /var/lib/apt/lists/*
 POSTEOF
 }
 
