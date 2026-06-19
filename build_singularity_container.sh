@@ -192,12 +192,15 @@ build_via_sandbox() {
     write_post_install_script "${POST_SCRIPT}"
     chmod +x "${POST_SCRIPT}"
 
+    # Ensure /tmp exists inside the sandbox
+    mkdir -p "${SANDBOX_DIR}/tmp"
+
     # Copy CenSoloLTR source
     local SRC_COPY="${SANDBOX_DIR}/tmp/CenSoloLTR_src"
     rm -rf "${SRC_COPY}"
     cp -r "${CENSOLOLTR_SRC}" "${SRC_COPY}"
 
-    # Copy post_install script and source into the sandbox
+    # Copy post_install script into the sandbox
     cp "${POST_SCRIPT}" "${SANDBOX_DIR}/tmp/post_install.sh"
 
     # Run the installation
