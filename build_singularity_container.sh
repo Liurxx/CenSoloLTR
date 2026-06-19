@@ -349,21 +349,10 @@ write_post_install_script() {
 #!/usr/bin/env bash
 set -euo pipefail
 
-export DEBIAN_FRONTEND=noninteractive
-export LANG=en_US.UTF-8
-export LC_ALL=en_US.UTF-8
+# No apt-get needed — everything comes from conda (self-contained).
+# conda provides its own compilers, system libraries, and R.
 
-# --- System packages ---
-apt-get update -qq
-apt-get install -y -qq --no-install-recommends \\
-    wget curl ca-certificates git build-essential \\
-    locales libglib2.0-0 libsm6 libxrender1 libxext6 \\
-    libfontconfig1 libfreetype6 libssl-dev
-
-locale-gen en_US.UTF-8
-update-locale LANG=en_US.UTF-8
-
-# --- Miniforge3 ---
+# --- Miniforge3 (no root required) ---
 wget -q "${MINIFORGE3_URL}" -O /tmp/miniforge.sh
 bash /tmp/miniforge.sh -b -p /opt/conda
 rm /tmp/miniforge.sh
@@ -372,6 +361,8 @@ export PATH="/opt/conda/bin:\${PATH}"
 mamba config --set always_yes yes
 
 # --- Conda environment ---
+# Includes conda compilers (gcc, g++, gfortran) as replacement for
+# build-essential; R CMD INSTALL needs them to compile the CenSoloLTR package.
 cat > /tmp/env.yaml << 'ENVEOF'
 name: ${ENV_NAME}
 channels:
@@ -379,6 +370,12 @@ channels:
   - ${CONDA_CHANNEL_2}
   - ${CONDA_CHANNEL_3}
 dependencies:
+  # Compilers (conda-provided, no system root needed)
+  - c-compiler
+  - cxx-compiler
+  - gfortran
+  - make
+  # R and bioinformatics tools
   - r-base
   - ltr_finder
   - ltr_finder_parallel
@@ -410,23 +407,16 @@ mamba env create -f /tmp/env.yaml
 mamba clean -afy
 rm /tmp/env.yaml
 
-# --- Auto-activate env ---
-cat >> /etc/bash.bashrc << 'BASHRC'
-. /opt/conda/etc/profile.d/conda.sh
-conda activate ${ENV_NAME}
-BASHRC
-
 # --- Install CenSoloLTR ---
 . /opt/conda/etc/profile.d/conda.sh
 conda activate ${ENV_NAME}
 if [ -f /tmp/CenSoloLTR_src/DESCRIPTION ]; then
     R CMD INSTALL --no-multiarch /tmp/CenSoloLTR_src
 fi
-# Note: /tmp/CenSoloLTR_src is a bind mount (read-only), do not remove
+# /tmp/CenSoloLTR_src is bind-mounted, do not remove
 
 # --- Cleanup ---
-apt-get clean
-rm -rf /var/lib/apt/lists/*
+rm -rf /tmp/*
 POSTEOF
 }
 
