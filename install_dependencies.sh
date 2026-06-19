@@ -151,33 +151,43 @@ dependencies:
 EOF
 fi
 
+NEED_CREATE=true
+
 if conda env list 2>/dev/null | grep -q "^${ENV_NAME} "; then
-    echo "  Environment '${ENV_NAME}' already exists."
-    echo "  To recreate from scratch: conda env remove -n ${ENV_NAME} && bash $0"
-    echo -e "${YELLOW}  Updating existing environment ...${NC}"
-    set +e
-    ENV_OUTPUT=$(${PKG_MGR} env update -f "${ENV_YAML}" --prune 2>&1)
-    ENV_EXIT=$?
-    set -e
-else
+    echo -e "  Environment '${ENV_NAME}' already exists, checking ..."
+    # Quick validation via key binaries (much faster than conda run)
+    ENV_PREFIX=$(conda env list 2>/dev/null | grep "^${ENV_NAME} " | awk '{print $NF}')
+    if [ -n "${ENV_PREFIX}" ] && \
+       [ -x "${ENV_PREFIX}/bin/ltr_finder" ] && \
+       [ -x "${ENV_PREFIX}/bin/blastn" ] && \
+       [ -x "${ENV_PREFIX}/bin/Rscript" ]; then
+        echo -e "${GREEN}  Environment is healthy, skipping update.${NC}"
+        NEED_CREATE=false
+    else
+        echo -e "${YELLOW}  Environment is broken/incomplete, removing and recreating ...${NC}"
+        conda env remove -n "${ENV_NAME}" -y
+    fi
+fi
+
+if [ "${NEED_CREATE}" = true ]; then
     set +e
     ENV_OUTPUT=$(${PKG_MGR} env create -f "${ENV_YAML}" 2>&1)
     ENV_EXIT=$?
     set -e
-fi
 
-if [ $ENV_EXIT -ne 0 ]; then
-    # openmpi post-link script may fail on servers whose /bin/sh layout
-    # differs from the build host.  All packages (including openmpi) are
-    # already installed; only the post-link cleanup script failed.
-    # CenSoloLTR does not use MPI, so this is harmless.
-    if echo "${ENV_OUTPUT}" | grep -q "pre/post link script.*openmpi"; then
-        echo -e "${YELLOW}  openmpi post-link script failed (non-critical — CenSoloLTR${NC}"
-        echo -e "${YELLOW}  does not use MPI).  Environment is usable.${NC}"
-    else
-        echo "${ENV_OUTPUT}"
-        echo -e "${RED}ERROR: environment creation failed (see above).${NC}"
-        exit 1
+    if [ $ENV_EXIT -ne 0 ]; then
+        # openmpi post-link script may fail on servers whose /bin/sh layout
+        # differs from the build host.  All packages (including openmpi) are
+        # already installed; only the post-link cleanup script failed.
+        # CenSoloLTR does not use MPI, so this is harmless.
+        if echo "${ENV_OUTPUT}" | grep -q "pre/post link script.*openmpi"; then
+            echo -e "${YELLOW}  openmpi post-link script failed (non-critical — CenSoloLTR${NC}"
+            echo -e "${YELLOW}  does not use MPI).  Environment is usable.${NC}"
+        else
+            echo "${ENV_OUTPUT}"
+            echo -e "${RED}ERROR: environment creation failed (see above).${NC}"
+            exit 1
+        fi
     fi
 fi
 echo -e "${GREEN}  Done.${NC}"
