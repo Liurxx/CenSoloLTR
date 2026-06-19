@@ -233,7 +233,7 @@ if [ "${NEED_CREATE}" = true ]; then
     ENV_LOG="/tmp/censololtr_env_$$.log"
     echo -n "  Solving ... "
     set +e
-    ${PKG_MGR} env create -f "${ENV_YAML}" --verbose > "${ENV_LOG}" 2>&1 &
+    ${PKG_MGR} env create -f "${ENV_YAML}" --strict-channel-priority --verbose > "${ENV_LOG}" 2>&1 &
     MAMBA_PID=$!
 
     # Spinner: rotates while mamba runs
