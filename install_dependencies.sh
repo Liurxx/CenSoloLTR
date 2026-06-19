@@ -150,9 +150,9 @@ dependencies:
 
   # Prevent openmpi transitive pull-in (post-link script fails
   # on servers whose /bin/sh layout differs from build host)
-  - boost-cpp =*=nompi*
-  - hdf5 =*=nompi*
-  - fftw =*=nompi*
+  - "boost-cpp =*=nompi*"
+  - "hdf5 =*=nompi*"
+  - "fftw =*=nompi*"
 EOF
 fi
 

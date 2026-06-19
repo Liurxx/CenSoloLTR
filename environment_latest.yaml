@@ -54,6 +54,6 @@ dependencies:
   - bioconductor-biostrings
 
   # ---- Prevent openmpi from transitive pull-in ----
-  - boost-cpp =*=nompi*
-  - hdf5 =*=nompi*
-  - fftw =*=nompi*
+  - "boost-cpp =*=nompi*"
+  - "hdf5 =*=nompi*"
+  - "fftw =*=nompi*"
