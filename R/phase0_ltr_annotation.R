@@ -381,6 +381,10 @@ step0d_tesorter <- function(params) {
   )
   run_external(cmd_seqtk, stderr_log = debug_log, echo_label = "seqtk")
 
+  if (!file.exists(rawltr_fa) || file.info(rawltr_fa)$size == 0) {
+    stop("[Step 0d] seqtk failed: rawLTR FASTA is missing or empty: ", rawltr_fa)
+  }
+
   log_msg(params, "Running TEsorter (rexdb-plant) ...")
   cmd_tesorter <- sprintf(
     "%s -db rexdb-plant -st nucl -p %d %s",
@@ -393,9 +397,10 @@ step0d_tesorter <- function(params) {
                          stderr_log = debug_log,
                          echo_label = "TEsorter")
 
-  if (status != 0) {
-    warning("[Step 0d] TEsorter exited with non-zero status: ", status,
-            ". Check debug log: ", debug_log)
+  if (status != 0 || !file.exists(cls_tsv)) {
+    stop("[Step 0d] TEsorter failed (exit=", status,
+         "). Output not found: ", cls_tsv,
+         ". Check debug log: ", debug_log)
   }
 
   log_msg(params, sprintf("Step 0d complete: %s", cls_tsv))

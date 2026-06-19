@@ -133,6 +133,15 @@ build_via_fakeroot() {
     # Copy CenSoloLTR source into build context (for %files to pick up)
     cp -r "${CENSOLOLTR_SRC}" "${BUILD_DIR}/CenSoloLTR_src"
 
+    # Copy RepeatMasker Libraries into build context (for %files to pick up)
+    # Empty directory if not found — %files requires the source to exist
+    if [ -n "${RMB_LIBRARIES}" ] && [ -d "${RMB_LIBRARIES}" ] && [ -f "${RMB_LIBRARIES}/Dfam.h5" ]; then
+        echo -e "  ${GREEN}Including RepeatMasker Libraries from host${NC}"
+        cp -r "${RMB_LIBRARIES}" "${BUILD_DIR}/RepeatMasker_Libraries"
+    else
+        mkdir -p "${BUILD_DIR}/RepeatMasker_Libraries"
+    fi
+
     write_definition_file "${DEF_FILE}"
 
     echo -e "${BLUE}Build directory:${NC} ${BUILD_DIR}"
@@ -213,12 +222,20 @@ build_via_sandbox() {
     write_post_install_script "${POST_SCRIPT}"
     chmod +x "${POST_SCRIPT}"
 
+    # Prepare RepeatMasker Libraries bind mount (if available)
+    local RMB_BIND=""
+    if [ -n "${RMB_LIBRARIES}" ] && [ -d "${RMB_LIBRARIES}" ] && [ -f "${RMB_LIBRARIES}/Dfam.h5" ]; then
+        RMB_BIND="--bind ${RMB_LIBRARIES}:/tmp/RepeatMasker_Libraries:ro"
+        echo -e "  ${GREEN}Including RepeatMasker Libraries from host${NC}"
+    fi
+
     # Use --bind to inject the script, Miniforge3 installer, and CenSoloLTR
     # source into the container. No network download needed inside the sandbox.
     singularity exec --writable \
         --bind "${POST_SCRIPT}:/tmp/post_install.sh:ro" \
         --bind "${MINIFORGE_INSTALLER}:/tmp/miniforge.sh:ro" \
         --bind "${CENSOLOLTR_SRC}:/tmp/CenSoloLTR_src:ro" \
+        ${RMB_BIND} \
         "${SANDBOX_DIR}" \
         /bin/bash /tmp/post_install.sh
 
@@ -300,6 +317,8 @@ From: ${FROM_IMAGE}
 %files
     # Copy CenSoloLTR R package source into container
     CenSoloLTR_src /tmp/CenSoloLTR_src
+    # Copy RepeatMasker Libraries (if available on host)
+    RepeatMasker_Libraries /tmp/RepeatMasker_Libraries
 
 %environment
     export LANG=C.UTF-8
@@ -376,6 +395,12 @@ ENVEOF
     mamba env create -f /tmp/env.yaml
     mamba clean -afy
     rm /tmp/env.yaml
+
+    # --- RepeatMasker Libraries (from host via %files) ---
+    if [ -d /tmp/RepeatMasker_Libraries ] && [ -f /tmp/RepeatMasker_Libraries/Dfam.h5 ]; then
+        echo "  Installing RepeatMasker Libraries into conda environment ..."
+        cp -r /tmp/RepeatMasker_Libraries/* /opt/conda/envs/${ENV_NAME}/share/RepeatMasker/Libraries/
+    fi
 
     # --- Install CenSoloLTR R package ---
     . /opt/conda/etc/profile.d/conda.sh
@@ -494,6 +519,12 @@ mamba env create -f /tmp/env.yaml
 mamba clean -afy
 rm /tmp/env.yaml
 
+# --- RepeatMasker Libraries (bind-mounted from host) ---
+if [ -d /tmp/RepeatMasker_Libraries ] && [ -f /tmp/RepeatMasker_Libraries/Dfam.h5 ]; then
+    echo "  Installing RepeatMasker Libraries into conda environment ..."
+    cp -r /tmp/RepeatMasker_Libraries/* /opt/conda/envs/${ENV_NAME}/share/RepeatMasker/Libraries/
+fi
+
 # --- Install CenSoloLTR ---
 . /opt/conda/etc/profile.d/conda.sh
 set +u  # conda activate may reference unbound CONDA_BACKUP_* vars
@@ -555,16 +586,19 @@ Options:
   -o PATH   Output SIF container path [default: ${OUTPUT_SIF}]
   -s PATH   CenSoloLTR R package source directory [default: auto-detect]
   -t PATH   Temporary build directory [default: /tmp/censololtr_sif_build_XXXXX]
+  -l PATH   RepeatMasker Libraries directory [default: auto-detect]
   -h        Show this help
 USAGEEOF
     exit 0
 }
 
-while getopts "o:s:t:h" opt; do
+RMB_LIBRARIES=""
+while getopts "o:s:t:l:h" opt; do
     case ${opt} in
         o) OUTPUT_SIF="$(realpath "${OPTARG}")" ;;
         s) CENSOLOLTR_SRC="$(realpath "${OPTARG}")" ;;
         t) TMPDIR="${OPTARG}" ;;
+        l) RMB_LIBRARIES="${OPTARG}" ;;
         h) usage ;;
         *) usage ;;
     esac
@@ -609,6 +643,28 @@ if [ ! -f "${CENSOLOLTR_SRC}/DESCRIPTION" ]; then
     exit 1
 fi
 echo -e "${BLUE}CenSoloLTR source:${NC} ${CENSOLOLTR_SRC}"
+
+# --- RepeatMasker Libraries auto-detection ---
+if [ -z "${RMB_LIBRARIES}" ]; then
+    # Auto-detect from conda environments (common locations)
+    for candidate in \
+        "${HOME}/miniconda3/envs/censololtr/share/RepeatMasker/Libraries" \
+        "${HOME}/anaconda3/envs/censololtr/share/RepeatMasker/Libraries" \
+        "/opt/conda/envs/censololtr/share/RepeatMasker/Libraries" \
+        "$(conda info --envs 2>/dev/null | grep censololtr | awk '{print $NF}')/share/RepeatMasker/Libraries"; do
+        if [ -d "${candidate}" ] && [ -f "${candidate}/Dfam.h5" ]; then
+            RMB_LIBRARIES="${candidate}"
+            break
+        fi
+    done
+fi
+if [ -n "${RMB_LIBRARIES}" ]; then
+    echo -e "${GREEN}RepeatMasker Libraries:${NC} ${RMB_LIBRARIES}"
+else
+    echo -e "${YELLOW}RepeatMasker Libraries:${NC} NOT FOUND (use -l PATH to specify)"
+    echo -e "${YELLOW}  Container will build but LTR_retriever will need runtime bind-mount:${NC}"
+    echo -e "${YELLOW}    singularity exec --bind /path/to/Libraries:/opt/conda/envs/censololtr/share/RepeatMasker/Libraries ${OUTPUT_SIF} ...${NC}"
+fi
 
 # Check fakeroot capability
 # Requires: Singularity >= 3.5 AND user subuid/subgid mappings in /etc
