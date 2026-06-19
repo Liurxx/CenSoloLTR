@@ -1,13 +1,13 @@
 # =========================================================================
 # CenSoloLTR v1.1.0 — Conda Environment
 # =========================================================================
-# Create: conda env create -f environment_latest.yaml
+# Create: mamba env create -f environment_latest.yaml
 # Activate: conda activate censololtr
 #
-# Version constraints are removed so conda/mamba can resolve a
-# compatible snapshot.  After creation, run:
-#    CenSoloLTR --version
-# to verify that every tool meets the minimum requirement.
+# nompi variants are forced on boost-cpp / hdf5 / fftw to prevent
+# openmpi from being pulled in.  Its post-link script fails with
+# "No such file or directory" on servers whose /bin/sh layout
+# differs from the build host, and CenSoloLTR does not use MPI.
 # =========================================================================
 name: censololtr
 channels:
@@ -52,3 +52,8 @@ dependencies:
 
   # Bioconductor
   - bioconductor-biostrings
+
+  # ---- Prevent openmpi from transitive pull-in ----
+  - boost-cpp =*=nompi*
+  - hdf5 =*=nompi*
+  - fftw =*=nompi*
