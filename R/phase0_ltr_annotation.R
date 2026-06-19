@@ -278,7 +278,7 @@ step0c_ltr_retriever <- function(params) {
     for (mf in mod_files) {
       norm_name <- file.path(params$dirs$retriever,
                              sub(paste0("\\.genome\\.fasta\\.mod\\."), ".genome.fasta.", basename(mf)))
-      if (!file.exists(norm_name)) file.symlink(mf, norm_name)
+      if (!file.exists(norm_name)) file.symlink(basename(mf), norm_name)
     }
     log_msg(params, "LTR_retriever v3.x (.mod) naming detected — symlinks created.")
   }
