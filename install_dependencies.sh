@@ -2,15 +2,15 @@
 # =========================================================================
 # CenSoloLTR v1.1.0 — Dependency Installation Script
 # =========================================================================
-# Installs all dependencies (conda environment + R packages + CenSoloLTR)
-# in a single run. Requires: conda (miniconda3 or anaconda3)
+# Installs all dependencies (conda/mamba environment + R packages + CenSoloLTR)
+# in a single run. Requires: mamba (recommended) or conda
 #
 # Usage:
 #   bash install_dependencies.sh
 #
 # What this script does:
 #   1. Creates conda environment 'censololtr' with all bioinformatics tools
-#      (minimum version requirements, not pinned to exact versions)
+#      (uses mamba for fast solving if available, falls back to conda)
 #   2. Installs R Bioconductor packages (Biostrings)
 #   3. Builds and installs the CenSoloLTR R package
 #   4. Creates CLI wrapper 'CenSoloLTR' in conda env PATH
@@ -51,20 +51,30 @@ banner() {
 
 banner
 
-# ---- Pre-check: conda ----
-if ! command -v conda &>/dev/null; then
-    echo -e "${RED}ERROR: conda not found in PATH.${NC}"
+# ---- Pre-check: mamba (preferred) or conda (fallback) ----
+PKG_MGR=""
+if command -v mamba &>/dev/null; then
+    PKG_MGR="mamba"
+    echo -e "${BLUE}mamba detected:${NC} $(mamba --version)"
+elif command -v conda &>/dev/null; then
+    PKG_MGR="conda"
+    echo -e "${YELLOW}conda detected:${NC} $(conda --version)"
+    echo -e "${YELLOW}  (mamba not found — install 'mamba' for faster solving: conda install -n base -c conda-forge mamba)${NC}"
+else
+    echo -e "${RED}ERROR: neither mamba nor conda found in PATH.${NC}"
     echo ""
-    echo "Please install Miniconda3 or Anaconda3 first:"
+    echo "Please install Miniconda3 or Miniforge first:"
+    echo "  https://github.com/conda-forge/miniforge (recommended, includes mamba)"
     echo "  https://docs.conda.io/en/latest/miniconda.html"
     echo ""
-    echo "Quick install (Linux x86_64):"
-    echo "  wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh"
-    echo "  bash Miniconda3-latest-Linux-x86_64.sh"
+    echo "Quick install (Miniforge, Linux x86_64):"
+    echo "  wget https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-Linux-x86_64.sh"
+    echo "  bash Miniforge3-Linux-x86_64.sh"
+    echo ""
+    echo "Then install mamba into base:"
+    echo "  conda install -n base -c conda-forge mamba"
     exit 1
 fi
-
-echo -e "${BLUE}conda detected:${NC} $(conda --version)"
 echo ""
 
 # ---- Minimum version requirements (for reference) ----
@@ -84,7 +94,7 @@ echo "  R                      >= 4.0"
 echo ""
 
 # ---- Step 1: Create/update conda environment ----
-echo -e "${YELLOW}[1/4] Creating conda environment '${ENV_NAME}' ...${NC}"
+echo -e "${YELLOW}[1/4] Creating conda environment '${ENV_NAME}' (via ${PKG_MGR}) ...${NC}"
 
 # Use an environment file with minimum version pins (>= instead of =)
 ENV_YAML="${SCRIPT_DIR}/environment_latest.yaml"
@@ -144,9 +154,9 @@ if conda env list 2>/dev/null | grep -q "^${ENV_NAME} "; then
     echo "  Environment '${ENV_NAME}' already exists."
     echo "  To recreate from scratch: conda env remove -n ${ENV_NAME} && bash $0"
     echo -e "${YELLOW}  Updating existing environment ...${NC}"
-    conda env update -f "${ENV_YAML}" --prune
+    ${PKG_MGR} env update -f "${ENV_YAML}" --prune
 else
-    conda env create -f "${ENV_YAML}"
+    ${PKG_MGR} env create -f "${ENV_YAML}"
 fi
 echo -e "${GREEN}  Done.${NC}"
 
