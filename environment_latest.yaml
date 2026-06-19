@@ -44,6 +44,9 @@ dependencies:
   - r-tidyr
   - r-ggplot2
   - r-scales
+  - r-systemfonts
+  - r-textshaping
+  - r-svglite
 
   # Bioconductor
   - bioconductor-biostrings

@@ -149,6 +149,9 @@ dependencies:
   - r-tidyr
   - r-ggplot2
   - r-scales
+  - r-systemfonts
+  - r-textshaping
+  - r-svglite
 
   # Bioconductor
   - bioconductor-biostrings
@@ -267,7 +270,7 @@ echo ""
 echo -e "${YELLOW}[3/4] Installing R packages ...${NC}"
 Rscript -e '
 required_pkgs <- c("optparse", "yaml", "dplyr", "stringr", "readr",
-                   "tidyr", "ggplot2", "scales", "svglite")
+                   "tidyr", "ggplot2", "scales")
 for (pkg in required_pkgs) {
   if (!requireNamespace(pkg, quietly = TRUE)) {
     install.packages(pkg, repos = "https://cloud.r-project.org",
