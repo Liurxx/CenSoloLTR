@@ -460,12 +460,18 @@ if [ ! -f "${CENSOLOLTR_SRC}/DESCRIPTION" ]; then
 fi
 echo -e "${BLUE}CenSoloLTR source:${NC} ${CENSOLOLTR_SRC}"
 
-# Check fakeroot
+# Check fakeroot capability
+# Requires: Singularity >= 3.5 AND user subuid/subgid mappings in /etc
 SIF_MAJOR=$(echo "${SIF_VER}" | grep -oP '\d+\.\d+' | head -1 | cut -d. -f1 || echo "0")
 SIF_MINOR=$(echo "${SIF_VER}" | grep -oP '\d+\.\d+' | head -1 | cut -d. -f2 || echo "0")
 if [ "${SIF_MAJOR}" -ge 4 ] || { [ "${SIF_MAJOR}" -eq 3 ] && [ "${SIF_MINOR}" -ge 5 ]; }; then
-    if singularity build --fakeroot --help &>/dev/null 2>&1; then
+    # Real check: fakeroot needs /etc/subuid entry for the current user
+    if grep -q "^$(whoami):" /etc/subuid 2>/dev/null && \
+       grep -q "^$(whoami):" /etc/subgid 2>/dev/null; then
         FAKEROOT_AVAILABLE=true
+    else
+        echo -e "${YELLOW}  fakeroot installed but /etc/subuid missing entry for $(whoami)${NC}"
+        echo -e "${YELLOW}  (requires admin: 'usermod --add-subuids ...' on the host)${NC}"
     fi
 fi
 
@@ -476,10 +482,20 @@ else
 fi
 echo ""
 
-# Check disk space
-AVAIL_GB=$(df "${TMPDIR}" 2>/dev/null | awk 'NR==2 {print int($4/1024/1024)}' || echo "0")
+# Check disk space (container build needs ~5 GB temp space)
+AVAIL_GB=$(df "$(dirname "${TMPDIR}")" 2>/dev/null | awk 'NR==2 {print int($4/1024/1024)}' || echo "0")
 if [ "${AVAIL_GB}" -lt 5 ]; then
-    echo -e "${YELLOW}WARNING: only ~${AVAIL_GB} GB available. Build needs ~5 GB.${NC}"
+    echo ""
+    echo -e "${YELLOW}╔══════════════════════════════════════════════════════════════╗${NC}"
+    echo -e "${YELLOW}║  WARNING: only ~${AVAIL_GB} GB available in $(dirname "${TMPDIR}")${NC}"
+    echo -e "${YELLOW}║  Container build needs ~5 GB of temporary space.${NC}"
+    echo -e "${YELLOW}║${NC}"
+    echo -e "${YELLOW}║  Use -t to specify a directory with more space:${NC}"
+    echo -e "${YELLOW}║    bash $0 -t /home/users/liurx/tmp_censololtr${NC}"
+    echo -e "${YELLOW}╚══════════════════════════════════════════════════════════════╝${NC}"
+    echo ""
+    echo -e "${RED}Aborting — insufficient disk space.${NC}"
+    exit 1
 fi
 
 mkdir -p "${TMPDIR}"
