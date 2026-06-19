@@ -90,7 +90,7 @@ echo -e "${YELLOW}[1/4] Creating conda environment '${ENV_NAME}' ...${NC}"
 ENV_YAML="${SCRIPT_DIR}/environment_latest.yaml"
 
 if [ ! -f "${ENV_YAML}" ]; then
-    # Generate environment file on-the-fly with minimum version constraints
+    # Generate environment file on-the-fly without version pins
     echo -e "${YELLOW}  environment_latest.yaml not found, generating from template ...${NC}"
     ENV_YAML="/tmp/censololtr_env_$$.yaml"
     cat > "${ENV_YAML}" << 'EOF'
@@ -101,26 +101,26 @@ channels:
   - defaults
 dependencies:
   # R base
-  - r-base >= 4.0
+  - r-base
 
   # Core LTR Detection
-  - ltr_finder >= 1.07
-  - ltr_finder_parallel >= 1.4
-  - ltr_harvest_parallel >= 1.3
-  - genometools-genometools >= 1.6.6
+  - ltr_finder
+  - ltr_finder_parallel
+  - ltr_harvest_parallel
+  - genometools-genometools
 
   # LTR_retriever & SoloLTR
-  - ltr_retriever >= 3.0.5
-  - repeatmasker >= 4.2
-  - blast >= 2.9
+  - ltr_retriever
+  - repeatmasker
+  - blast
 
   # Classification & Clustering
-  - tesorter >= 1.5.1
-  - cd-hit >= 4.6
+  - tesorter
+  - cd-hit
 
   # Utilities
-  - seqtk >= 1.4
-  - samtools >= 1.9
+  - seqtk
+  - samtools
 
   # Perl
   - perl-bioperl
