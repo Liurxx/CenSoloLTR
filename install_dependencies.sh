@@ -177,6 +177,20 @@ if conda env list 2>/dev/null | grep -q "^${ENV_NAME} "; then
     fi
 fi
 
+# Handle stale prefix directories from killed/interrupted installs:
+# the directory exists on disk but conda env list doesn't know about it.
+if [ "${NEED_CREATE}" = true ]; then
+    ENV_PREFIX_DIR="$(conda info --envs 2>/dev/null | grep "^[[:space:]]*${ENV_NAME}[[:space:]]" | awk '{print $NF}' || true)"
+    if [ -z "${ENV_PREFIX_DIR}" ]; then
+        # Not registered — check if the default prefix dir exists anyway
+        DEFAULT_PREFIX="$(dirname "$(dirname "$(which conda 2>/dev/null || echo /opt/conda)")")/envs/${ENV_NAME}"
+        if [ -d "${DEFAULT_PREFIX}" ]; then
+            echo -e "${YELLOW}  Removing stale environment directory: ${DEFAULT_PREFIX}${NC}"
+            rm -rf "${DEFAULT_PREFIX}"
+        fi
+    fi
+fi
+
 if [ "${NEED_CREATE}" = true ]; then
     echo -e "  Solving dependencies (may take 5-15 min, please wait) ..."
 
