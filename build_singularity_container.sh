@@ -482,6 +482,21 @@ while getopts "o:s:t:h" opt; do
     esac
 done
 
+# Convert paths to absolute (prevents "cp into itself" errors)
+TMPDIR="$(realpath -m "${TMPDIR}" 2>/dev/null || readlink -f "${TMPDIR}" 2>/dev/null || echo "${TMPDIR}")"
+OUTPUT_SIF="$(realpath -m "${OUTPUT_SIF}" 2>/dev/null || readlink -f "${OUTPUT_SIF}" 2>/dev/null || echo "${OUTPUT_SIF}")"
+
+# Safety: TMPDIR must NOT be inside CenSoloLTR source tree
+if [[ "${TMPDIR}" == "${CENSOLOLTR_SRC}"/* ]]; then
+    echo -e "${RED}ERROR: Temp directory must be OUTSIDE the CenSoloLTR source tree.${NC}"
+    echo "  TMPDIR:     ${TMPDIR}"
+    echo "  Source:     ${CENSOLOLTR_SRC}"
+    echo ""
+    echo "Use -t with an absolute path outside the repo, e.g.:"
+    echo "  bash $0 -t ~/tmp_censololtr_build"
+    exit 1
+fi
+
 # --- Pre-flight ---
 banner
 print_config
