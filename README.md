@@ -24,7 +24,7 @@ Starting from a genome FASTA file and a centromere BED file, the pipeline execut
 ### Step 1: Clone the Repository
 
 ```bash
-git clone https://github.com/Liurxx/CenSoloLTR.git
+git clone https://github.com/Liurxx/CenSoloLTR_v1.1.0.git
 cd CenSoloLTR
 ```
 
