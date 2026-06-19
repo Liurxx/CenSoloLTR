@@ -45,6 +45,12 @@ Thumbs.db
 !inst/extdata/fabaceae_db/
 !inst/extdata/fabaceae_db/**/*.fasta
 
+# Singularity container artifacts
+*.sif
+*.sif~
+.fuse_hidden*
+CenSoloLTR_container
+
 # Temporary files
 tmp_*
 *.tmp

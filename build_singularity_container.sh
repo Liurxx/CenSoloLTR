@@ -157,6 +157,9 @@ build_via_sandbox() {
     echo -e "${YELLOW}Building container via sandbox mode ...${NC}"
     echo ""
 
+    # Step 0: Remove old SIF if it exists (singularity build prompts for confirmation)
+    rm -f "${OUTPUT_SIF}"
+
     # Step 1: Pull base image from Docker Hub (try mirrors if needed)
     echo -e "${BLUE}[1/3] Pulling ubuntu:${UBUNTU_VERSION} base image ...${NC}"
     local DOCKER_URI=""
@@ -186,24 +189,71 @@ build_via_sandbox() {
         exit 1
     fi
 
-    # Step 2: Write post-install script and run it inside the sandbox
+    # Step 2: Pre-download Miniforge3 installer on host (minimal Ubuntu
+    # images lack wget/curl, and we can't apt-get without root in sandbox)
     echo ""
-    echo -e "${BLUE}[2/3] Installing dependencies inside sandbox (5-20 min) ...${NC}"
+    echo -e "${BLUE}[2/3] Preparing installer and running sandbox build (5-20 min) ...${NC}"
+    local MINIFORGE_INSTALLER="${TMPDIR}/Miniforge3.sh"
+    if [ ! -f "${MINIFORGE_INSTALLER}" ]; then
+        echo -ne "  Downloading Miniforge3 installer ... "
+        if command -v wget &>/dev/null; then
+            wget -q "${MINIFORGE3_URL}" -O "${MINIFORGE_INSTALLER}"
+        elif command -v curl &>/dev/null; then
+            curl -fsSL "${MINIFORGE3_URL}" -o "${MINIFORGE_INSTALLER}"
+        else
+            echo "FAIL"
+            echo -e "${RED}ERROR: Neither wget nor curl found on host. Install one of them.${NC}"
+            exit 1
+        fi
+        echo -e "${GREEN}OK${NC} (${MINIFORGE_INSTALLER})"
+    else
+        echo -e "  Using cached installer: ${MINIFORGE_INSTALLER}"
+    fi
+
     write_post_install_script "${POST_SCRIPT}"
     chmod +x "${POST_SCRIPT}"
 
-    # Use --bind to inject the script and CenSoloLTR source into the container.
-    # This is more reliable than copying files into the sandbox directory,
-    # which may have unexpected internal structure across Singularity versions.
+    # Use --bind to inject the script, Miniforge3 installer, and CenSoloLTR
+    # source into the container. No network download needed inside the sandbox.
     singularity exec --writable \
         --bind "${POST_SCRIPT}:/tmp/post_install.sh:ro" \
+        --bind "${MINIFORGE_INSTALLER}:/tmp/miniforge.sh:ro" \
         --bind "${CENSOLOLTR_SRC}:/tmp/CenSoloLTR_src:ro" \
         "${SANDBOX_DIR}" \
         /bin/bash /tmp/post_install.sh
 
-    # Step 3: Convert to final SIF
+    # Step 3: Inject environment/runscript into sandbox (sandbox lacks %environment/%runscript)
     echo ""
-    echo -e "${BLUE}[3/3] Converting sandbox to final SIF ...${NC}"
+    echo -e "${BLUE}[3/3] Setting up container environment and converting to SIF ...${NC}"
+    local SIF_ENV_DIR="${SANDBOX_DIR}/.singularity.d/env"
+    mkdir -p "${SIF_ENV_DIR}"
+    cat > "${SIF_ENV_DIR}/90-environment.sh" << ENVEOF
+export LANG=C.UTF-8
+export LC_ALL=C.UTF-8
+export CONDA_PREFIX=/opt/conda
+. /opt/conda/etc/profile.d/conda.sh
+conda activate ${ENV_NAME}
+export PATH=/opt/conda/envs/${ENV_NAME}/bin:/opt/conda/bin:\$PATH
+ENVEOF
+    chmod +x "${SIF_ENV_DIR}/90-environment.sh"
+
+    cat > "${SANDBOX_DIR}/.singularity.d/runscript" << RUNEOF
+#!/bin/bash
+. /opt/conda/etc/profile.d/conda.sh
+conda activate ${ENV_NAME}
+exec "\$@"
+RUNEOF
+    chmod +x "${SANDBOX_DIR}/.singularity.d/runscript"
+
+    cat > "${SANDBOX_DIR}/.singularity.d/labels.json" << LABELSEOF
+{
+  "Author": "CenSoloLTR",
+  "Version": "${CENSOLOLTR_VERSION}",
+  "Base_Ubuntu": "${UBUNTU_VERSION}",
+  "Miniforge3": "${MINIFORGE3_VERSION}"
+}
+LABELSEOF
+
     singularity build "${OUTPUT_SIF}" "${SANDBOX_DIR}"
 
     # Cleanup
@@ -213,28 +263,56 @@ build_via_sandbox() {
 # =========================================================================
 # Write Singularity definition file (for fakeroot mode)
 # =========================================================================
+detect_docker_mirror() {
+    # Quick test: try pulling a minimal image (or just check connectivity)
+    # Returns the registry prefix to use (e.g. "docker.m.daocloud.io/" or "")
+    echo -ne "  Checking Docker Hub connectivity ... "
+    # Use a quick TCP check to registry-1.docker.io:443
+    if timeout 5 bash -c 'echo >/dev/tcp/registry-1.docker.io/443' 2>/dev/null; then
+        echo -e "${GREEN}direct${NC}"
+        echo ""
+    elif timeout 5 bash -c 'echo >/dev/tcp/docker.m.daocloud.io/443' 2>/dev/null; then
+        echo -e "${YELLOW}via DaoCloud${NC}"
+        echo "docker.m.daocloud.io/"
+    elif timeout 5 bash -c 'echo >/dev/tcp/dockerproxy.com/443' 2>/dev/null; then
+        echo -e "${YELLOW}via dockerproxy${NC}"
+        echo "dockerproxy.com/"
+    else
+        echo -e "${YELLOW}unreachable (will try all mirrors at build time)${NC}"
+        echo ""
+    fi
+}
+
+# =========================================================================
+# Write Singularity definition file (for fakeroot mode)
+# =========================================================================
 write_definition_file() {
     local DEF_FILE="$1"
+    local FROM_IMAGE="ubuntu:${UBUNTU_VERSION}"
+    if [ -n "${DOCKER_REGISTRY}" ]; then
+        FROM_IMAGE="${DOCKER_REGISTRY}${FROM_IMAGE}"
+    fi
 
     cat > "${DEF_FILE}" << DEFEOF
 Bootstrap: docker
-From: ubuntu:${UBUNTU_VERSION}
+From: ${FROM_IMAGE}
 
 %files
     # Copy CenSoloLTR R package source into container
     CenSoloLTR_src /tmp/CenSoloLTR_src
 
 %environment
-    export LANG=en_US.UTF-8
-    export LC_ALL=en_US.UTF-8
+    export LANG=C.UTF-8
+    export LC_ALL=C.UTF-8
     export CONDA_PREFIX=/opt/conda
-    export PATH=/opt/conda/envs/${ENV_NAME}/bin:/opt/conda/bin:\$PATH
+    . /opt/conda/etc/profile.d/conda.sh
+    conda activate ${ENV_NAME}
 
 %post
     set -e
     export DEBIAN_FRONTEND=noninteractive
-    export LANG=en_US.UTF-8
-    export LC_ALL=en_US.UTF-8
+    export LANG=C.UTF-8
+    export LC_ALL=C.UTF-8
 
     # --- System packages ---
     apt-get update -qq
@@ -244,8 +322,9 @@ From: ubuntu:${UBUNTU_VERSION}
         libfontconfig1 libfreetype6 libssl-dev \
         procps
 
-    locale-gen en_US.UTF-8
-    update-locale LANG=en_US.UTF-8
+    # Install proper locale for better R output
+    echo "en_US.UTF-8 UTF-8" >> /etc/locale.gen
+    locale-gen en_US.UTF-8 2>/dev/null || true
 
     # --- Install Miniforge3 ---
     wget -q "${MINIFORGE3_URL}" -O /tmp/miniforge.sh
@@ -253,11 +332,11 @@ From: ubuntu:${UBUNTU_VERSION}
     rm /tmp/miniforge.sh
 
     export PATH="/opt/conda/bin:\$PATH"
-    mamba config --set always_yes yes
-    mamba config --set channel_priority strict
-    mamba config --prepend channels ${CONDA_CHANNEL_3}
-    mamba config --prepend channels ${CONDA_CHANNEL_2}
-    mamba config --prepend channels ${CONDA_CHANNEL_1}
+    conda config --set always_yes yes
+    conda config --set channel_priority strict
+    conda config --prepend channels ${CONDA_CHANNEL_3}
+    conda config --prepend channels ${CONDA_CHANNEL_2}
+    conda config --prepend channels ${CONDA_CHANNEL_1}
 
     # --- Create conda environment ---
     cat > /tmp/env.yaml << 'ENVEOF'
@@ -307,6 +386,14 @@ ENVEOF
         echo "WARNING: CenSoloLTR source not found, skipping R package install"
     fi
 
+    # Create CenSoloLTR CLI wrapper
+    BIN_DIR="\$(dirname "\$(which Rscript)")"
+    cat > "\${BIN_DIR}/CenSoloLTR" << 'WRAPEOF'
+#!/usr/bin/env bash
+exec Rscript --no-save --no-restore -e "CenSoloLTR::run_pipeline()" -- "\$@"
+WRAPEOF
+    chmod +x "\${BIN_DIR}/CenSoloLTR"
+
     # --- Make conda env auto-available ---
     echo '. /opt/conda/etc/profile.d/conda.sh' >> /etc/bash.bashrc
     echo 'conda activate ${ENV_NAME}' >> /etc/bash.bashrc
@@ -349,16 +436,16 @@ write_post_install_script() {
 #!/usr/bin/env bash
 set -euo pipefail
 
-# No apt-get needed — everything comes from conda (self-contained).
-# conda provides its own compilers, system libraries, and R.
+# No apt-get or network tools needed — all files are bind-mounted from host.
+# conda provides compilers, system libraries, and R self-contained.
 
-# --- Miniforge3 (no root required) ---
-wget -q "${MINIFORGE3_URL}" -O /tmp/miniforge.sh
-bash /tmp/miniforge.sh -b -p /opt/conda
-rm /tmp/miniforge.sh
+# --- Miniforge3 (bind-mounted from host, copy to writable location) ---
+cp /tmp/miniforge.sh /tmp/miniforge_install.sh
+bash /tmp/miniforge_install.sh -b -p /opt/conda
+rm -f /tmp/miniforge_install.sh
 
 export PATH="/opt/conda/bin:\${PATH}"
-mamba config --set always_yes yes
+conda config --set always_yes yes
 
 # --- Conda environment ---
 # Includes conda compilers (gcc, g++, gfortran) as replacement for
@@ -409,14 +496,26 @@ rm /tmp/env.yaml
 
 # --- Install CenSoloLTR ---
 . /opt/conda/etc/profile.d/conda.sh
+set +u  # conda activate may reference unbound CONDA_BACKUP_* vars
 conda activate ${ENV_NAME}
+set -u
 if [ -f /tmp/CenSoloLTR_src/DESCRIPTION ]; then
     R CMD INSTALL --no-multiarch /tmp/CenSoloLTR_src
 fi
+
+# Create CenSoloLTR CLI wrapper in the conda env bin/ directory
+BIN_DIR="\$(dirname "\$(which Rscript)")"
+cat > "\${BIN_DIR}/CenSoloLTR" << 'WRAPPEREOF'
+#!/usr/bin/env bash
+exec Rscript --no-save --no-restore -e "CenSoloLTR::run_pipeline()" -- "\$@"
+WRAPPEREOF
+chmod +x "\${BIN_DIR}/CenSoloLTR"
 # /tmp/CenSoloLTR_src is bind-mounted, do not remove
 
 # --- Cleanup ---
-rm -rf /tmp/*
+# Skip bind-mounted files (read-only); only remove writable temp files
+find /tmp -maxdepth 1 -writable -name '*.sh' -delete 2>/dev/null || true
+find /tmp -maxdepth 1 -writable -name '*.yaml' -delete 2>/dev/null || true
 POSTEOF
 }
 
@@ -516,10 +615,17 @@ echo -e "${BLUE}CenSoloLTR source:${NC} ${CENSOLOLTR_SRC}"
 SIF_MAJOR=$(echo "${SIF_VER}" | grep -oP '\d+\.\d+' | head -1 | cut -d. -f1 || echo "0")
 SIF_MINOR=$(echo "${SIF_VER}" | grep -oP '\d+\.\d+' | head -1 | cut -d. -f2 || echo "0")
 if [ "${SIF_MAJOR}" -ge 4 ] || { [ "${SIF_MAJOR}" -eq 3 ] && [ "${SIF_MINOR}" -ge 5 ]; }; then
-    # Real check: fakeroot needs /etc/subuid entry for the current user
+    # Real check: fakeroot needs /etc/subuid entry AND working mount namespace
     if grep -q "^$(whoami):" /etc/subuid 2>/dev/null && \
        grep -q "^$(whoami):" /etc/subgid 2>/dev/null; then
-        FAKEROOT_AVAILABLE=true
+        # Quick smoke test: can we actually create a mount namespace?
+        if unshare -U -m true 2>/dev/null || \
+           singularity exec --fakeroot /dev/null true 2>/dev/null; then
+            FAKEROOT_AVAILABLE=true
+        else
+            echo -e "${YELLOW}  subuid/subgid exist but mount namespace creation failed${NC}"
+            echo -e "${YELLOW}  (kernel or Singularity install restricts unprivileged namespaces)${NC}"
+        fi
     else
         echo -e "${YELLOW}  fakeroot installed but /etc/subuid missing entry for $(whoami)${NC}"
         echo -e "${YELLOW}  (requires admin: 'usermod --add-subuids ...' on the host)${NC}"
@@ -528,6 +634,8 @@ fi
 
 if [ "${FAKEROOT_AVAILABLE}" = true ]; then
     echo -e "${GREEN}Build mode:${NC} fakeroot (fast)"
+    # Detect working Docker registry for the fakeroot definition file
+    DOCKER_REGISTRY=$(detect_docker_mirror)
 else
     echo -e "${YELLOW}Build mode:${NC} sandbox (no fakeroot support)"
 fi
