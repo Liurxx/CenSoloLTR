@@ -19,7 +19,59 @@ Starting from a genome FASTA file and a centromere BED file, the pipeline execut
 
 ---
 
+## System Compatibility & Recommended Approach
+
+CenSoloLTR depends on numerous bioinformatics tools installed via conda/mamba from **conda-forge** and **bioconda** channels. These pre-compiled packages are built against **glibc >= 2.28**, making them incompatible with older Linux distributions:
+
+| Distribution | glibc Version | Compatible? |
+|-------------|---------------|-------------|
+| CentOS 7 / RHEL 7 | 2.17 | **No** |
+| CentOS 8 / RHEL 8 | 2.28 | Yes |
+| Ubuntu 18.04 | 2.27 | **No** |
+| Ubuntu 20.04+ | 2.31+ | Yes |
+| Debian 10+ | 2.28+ | Yes |
+
+On incompatible systems, the `install_dependencies.sh` script will fail during dependency resolution or at runtime. We **strongly recommend using the Singularity container approach** below, which works on any Linux system regardless of the host glibc version and requires no root or sudo access.
+
+### Recommended: Singularity Container Build
+
+```bash
+# 1. Clone the repository
+git clone https://github.com/Liurxx/CenSoloLTR_v1.1.0.git
+cd CenSoloLTR_v1.1.0
+
+# 2. Build the container (10–25 min, no root required)
+bash build_singularity_container.sh
+
+# 3. Run the pipeline
+singularity exec censololtr_v1.1.0.sif CenSoloLTR -g genome.fa -c cen.bed -o ./output -t 16
+```
+
+The build script automatically handles:
+- Docker registry mirror detection (works in China mainland without extra configuration)
+- Miniforge3 + mamba installation (~100 bioinformatics packages)
+- CenSoloLTR R package installation with CLI wrapper
+- Output: `censololtr_v1.1.0.sif` (~1.5 GB, self-contained)
+
+**Prerequisite:** [Singularity](https://docs.sylabs.io/guides/latest/user-guide/) or Apptainer must be available. On HPC clusters: `module load singularity`.
+
+Custom build options:
+```bash
+bash build_singularity_container.sh -t /path/to/temp -s /path/to/source
+# -t: temp build directory (needs ~5 GB)
+# -s: CenSoloLTR R package source path
+# -o: output SIF path
+```
+
+### Alternative: Direct Installation (glibc >= 2.28 only)
+
+If your system meets the glibc requirement, you may use the direct installation script. See [Installation](#installation) below.
+
+---
+
 ## Installation
+
+> **Compatibility Note:** The `install_dependencies.sh` script is designed for systems with **glibc >= 2.28**. On older systems (CentOS 7, Ubuntu 18.04, etc.), please use the [Singularity container build](#recommended-singularity-container-build) instead.
 
 ### Step 1: Clone the Repository
 
