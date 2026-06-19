@@ -272,8 +272,10 @@ echo -e "${GREEN}  Done.${NC}"
 # ---- Step 2: Activate environment ----
 echo ""
 echo -e "${YELLOW}[2/4] Activating environment ...${NC}"
+set +u  # conda activate scripts may reference unbound CONDA_BACKUP_* vars
 eval "$(conda shell.bash hook)"
 conda activate "${ENV_NAME}"
+set -u
 
 echo "  R:       $(which Rscript)"
 echo "  BLAST:   $(which blastn 2>/dev/null || echo '(conda)')"
