@@ -30,6 +30,28 @@ UBUNTU_VERSION="22.04"               # Ubuntu LTS (jammy, glibc 2.35)
 MINIFORGE3_VERSION="24.11.2-0"       # Miniforge3 release tag
 MINIFORGE3_URL="https://github.com/conda-forge/miniforge/releases/download/${MINIFORGE3_VERSION}/Miniforge3-${MINIFORGE3_VERSION}-Linux-x86_64.sh"
 
+# --- Docker registry mirrors (tried in order, for China mainland servers) ---
+# In sandbox mode, the script tries each mirror for docker:// pull.
+# In fakeroot mode, only the first DOCKER_REGISTRY is used for Bootstrap.
+# Mirrors only affect the Ubuntu base image pull; conda/mamba channels
+# inside the container use separate conda mirrors (see below).
+DOCKER_MIRRORS=(
+    "docker.io"                              # Official (fastest outside China)
+    "docker.m.daocloud.io"                   # DaoCloud (fast inside China)
+    "dockerproxy.com"                        # dockerproxy
+    "hub-mirror.c.163.com"                   # NetEase
+    "mirror.baidubce.com"                    # Baidu
+    "docker.nju.edu.cn"                      # Nanjing University
+)
+# Registry prefix for fakeroot definition file (single value, no fallback)
+DOCKER_REGISTRY=""
+
+# --- Conda mirrors (used inside the container for faster package downloads) ---
+# Empty = use defaults (repo.anaconda.com + conda-forge.org)
+# For China: set to "https://mirrors.tuna.tsinghua.edu.cn/anaconda"
+# Or auto-detect based on connectivity:
+CONDA_MIRROR=""
+
 # --- Conda environment name ---
 ENV_NAME="censololtr"
 
@@ -135,9 +157,34 @@ build_via_sandbox() {
     echo -e "${YELLOW}Building container via sandbox mode ...${NC}"
     echo ""
 
-    # Step 1: Pull base image into writable sandbox
+    # Step 1: Pull base image from Docker Hub (try mirrors if needed)
     echo -e "${BLUE}[1/3] Pulling ubuntu:${UBUNTU_VERSION} base image ...${NC}"
-    singularity build --sandbox "${SANDBOX_DIR}" "docker://ubuntu:${UBUNTU_VERSION}"
+    local DOCKER_URI=""
+    local PULL_OK=false
+
+    for mirror in "${DOCKER_MIRRORS[@]}"; do
+        if [ "${mirror}" = "docker.io" ]; then
+            DOCKER_URI="docker://ubuntu:${UBUNTU_VERSION}"
+        else
+            DOCKER_URI="docker://${mirror}/ubuntu:${UBUNTU_VERSION}"
+        fi
+        echo -ne "  Trying ${mirror} ... "
+        if singularity build --sandbox "${SANDBOX_DIR}" "${DOCKER_URI}" 2>&1; then
+            echo -e "${GREEN}OK${NC}"
+            PULL_OK=true
+            break
+        else
+            echo -e "${YELLOW}failed${NC}"
+            rm -rf "${SANDBOX_DIR}" 2>/dev/null || true
+        fi
+    done
+
+    if [ "${PULL_OK}" = false ]; then
+        echo ""
+        echo -e "${RED}ERROR: Could not pull ubuntu:${UBUNTU_VERSION} from any Docker registry.${NC}"
+        echo "All mirrors in DOCKER_MIRRORS failed. Check network or add more mirrors."
+        exit 1
+    fi
 
     # Step 2: Write and run post-install script
     echo ""
