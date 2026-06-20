@@ -37,8 +37,8 @@ On incompatible systems, the `install_dependencies.sh` script will fail during d
 
 ```bash
 # 1. Clone the repository
-git clone https://github.com/Liurxx/CenSoloLTR_v1.1.0.git
-cd CenSoloLTR_v1.1.0
+git clone https://github.com/Liurxx/CenSoloLTR.git
+cd CenSoloLTR
 
 # 2. Build the container (10–25 min, no root required)
 bash build_singularity_container.sh
@@ -52,6 +52,8 @@ The build script automatically handles:
 - Miniforge3 + mamba installation (~100 bioinformatics packages)
 - CenSoloLTR R package installation with CLI wrapper
 - Output: `censololtr_v1.1.0.sif` (~1.5 GB, self-contained)
+
+**Pre-built container:** If you prefer to skip the build process, a pre-built Singularity image (`censololtr_v1.1.0.sif`) is available upon request. Please contact the corresponding author of the CenSoloLTR publication.
 
 **Prerequisite:** [Singularity](https://docs.sylabs.io/guides/latest/user-guide/) or Apptainer must be available. On HPC clusters: `module load singularity`.
 
@@ -76,8 +78,8 @@ If your system meets the glibc requirement, you may use the direct installation 
 ### Step 1: Clone the Repository
 
 ```bash
-git clone https://github.com/Liurxx/CenSoloLTR_v1.1.0.git
-cd CenSoloLTR_v1.1.0
+git clone https://github.com/Liurxx/CenSoloLTR.git
+cd CenSoloLTR
 ```
 
 ### Step 2: Install Dependencies
