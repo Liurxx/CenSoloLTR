@@ -240,7 +240,15 @@ step0c_ltr_retriever <- function(params) {
     file.symlink(normalizePath(genome_fa), genome_link)
   }
 
-  log_msg(params, "Running LTR_retriever ...")
+  # Core output files for downstream steps (0d, 0e, Phase 1)
+  # LTR_retriever v3.x inserts ".mod" into output filenames (e.g.
+  # .genome.fasta.mod.pass.list), while v2.9.x does not. Handle both.
+  mod_pass_list <- file.path(params$dirs$retriever,
+                             paste0(sample, ".genome.fasta.mod.pass.list"))
+  ltrlib_fa     <- file.path(params$dirs$retriever,
+                             paste0(sample, ".genome.fasta.LTRlib.fa"))
+  mod_ltrlib_fa <- file.path(params$dirs$retriever,
+                             paste0(sample, ".genome.fasta.mod.LTRlib.fa"))
 
   cmd <- sprintf(
     "%s -threads %d -genome %s.genome.fasta -inharvest %s.rawLTR.scn",
@@ -250,24 +258,28 @@ step0c_ltr_retriever <- function(params) {
     sample
   )
 
-  # Wrap with timeout if configured (prevents LAI all-vs-all BLAST from
-  # running indefinitely; core outputs are produced before LAI starts)
-  if (is.finite(params$ltr_retriever_timeout) &&
-      params$ltr_retriever_timeout > 0) {
-    cmd <- sprintf("timeout --signal=TERM --kill-after=30 %d %s",
-                   as.integer(params$ltr_retriever_timeout), cmd)
-    log_msg(params, sprintf("  (timeout: %d s)", params$ltr_retriever_timeout))
-  }
+  # Launch LTR_retriever in background, then poll for core outputs.
+  # LTR_retriever produces pass.list and LTRlib.fa before the
+  # time-consuming LAI step. Once those files are ready, terminate
+  # LTR_retriever to skip LAI.  If LTR_retriever finishes on its own
+  # first, return its exit code.
+  max_wait <- if (is.finite(params$ltr_retriever_timeout) &&
+                  params$ltr_retriever_timeout > 0) {
+    sprintf("if [ $elapsed -ge %d ]; then kill $pid 2>/dev/null; sleep 10; kill -9 $pid 2>/dev/null; wait $pid 2>/dev/null; exit 124; fi;",
+            as.integer(params$ltr_retriever_timeout))
+  } else ""
+  log_msg(params, "Launching LTR_retriever (polling for core outputs every 30s) ...")
+  poll_cmd <- sprintf(
+    "{ %s & pid=$!; elapsed=0; while true; do sleep 30; elapsed=$((elapsed+30)); if { [ -s %s ] || [ -s %s ]; } && { [ -s %s ] || [ -s %s ]; }; then kill $pid 2>/dev/null; sleep 10; kill -9 $pid 2>/dev/null; wait $pid 2>/dev/null; exit 0; fi; if ! kill -0 $pid 2>/dev/null; then wait $pid; ex=$?; exit ${ex}; fi; %s done; }",
+    cmd,
+    shQuote(pass_list), shQuote(mod_pass_list),
+    shQuote(ltrlib_fa), shQuote(mod_ltrlib_fa),
+    max_wait
+  )
 
-  status <- run_external(cmd, wd = params$dirs$retriever,
+  status <- run_external(poll_cmd, wd = params$dirs$retriever,
                          stderr_log = debug_log,
                          echo_label = "LTR_retriever")
-
-  # Core outputs needed for downstream steps (0d, 0e, Phase 1)
-  # LTR_retriever v3.x inserts ".mod" into output filenames (e.g.
-  # .genome.fasta.mod.pass.list), while v2.9.x does not. Handle both.
-  mod_pass_list <- file.path(params$dirs$retriever,
-                             paste0(sample, ".genome.fasta.mod.pass.list"))
   if (file.exists(mod_pass_list) && file.info(mod_pass_list)$size > 0) {
     # v3.x naming detected — create symlinks to match expected v2.9.x names
     mod_prefix  <- paste0(sample, ".genome.fasta.mod")
@@ -291,22 +303,32 @@ step0c_ltr_retriever <- function(params) {
   )
   essential_exist <- file.exists(essential) & file.info(essential)$size > 0
 
-  # timeout exit codes: 124 (timeout), 137 (SIGKILL from --kill-after)
-  if (status %in% c(124, 137)) {
+  # status 0: core outputs found, LTR_retriever terminated (skipped LAI).
+  # status 124: max wait exceeded (when --ltr-retriever-timeout is set).
+  # other non-zero: LTR_retriever process died before core outputs existed.
+  if (status == 0) {
     if (all(essential_exist)) {
-      log_msg(params, "LTR_retriever timed out at LAI step, but all core outputs exist — continuing.")
+      log_msg(params, "Core outputs ready — continuing to next step (LAI skipped).")
     } else {
-      warning("[Step 0c] LTR_retriever timed out and core outputs are missing. ",
-              "Consider increasing --ltr-retriever-timeout. ",
+      warning("[Step 0c] Core outputs not found after wake. Check debug log: ", debug_log)
+      return(invisible(NULL))
+    }
+  } else if (status == 124) {
+    if (all(essential_exist)) {
+      log_msg(params, "Max wait reached but core outputs exist — continuing.")
+    } else {
+      warning("[Step 0c] Max wait (", params$ltr_retriever_timeout, "s) exceeded and core outputs missing. ",
+              "Increase --ltr-retriever-timeout or set to 0 (no limit). ",
               "Check debug log: ", debug_log)
       return(invisible(NULL))
     }
-  } else if (status != 0) {
+  } else {
     if (all(essential_exist)) {
       log_msg(params, "LTR_retriever exited non-zero but core outputs exist — continuing.")
     } else {
-      warning("[Step 0c] LTR_retriever exited with non-zero status: ", status,
-              ". Check debug log: ", debug_log)
+      warning("[Step 0c] LTR_retriever failed (exit=", status,
+              "). Check debug log: ", debug_log)
+      return(invisible(NULL))
     }
   }
 

@@ -116,7 +116,7 @@ build_option_parser <- function() {
       optparse::make_option(
         "--ltr-retriever-timeout", type = "integer", default = 0,
         metavar = "SECONDS",
-        help = "Max runtime for LTR_retriever in seconds (0 = no timeout). Set a positive value to kill LTR_retriever's LAI step (all-vs-all BLAST) on small genomes while keeping core outputs. For large genomes, leave at 0 to avoid killing the process before core outputs complete. [default: 0]"
+        help = "Max wait for LTR_retriever core outputs in seconds (0 = no limit). The pipeline launches LTR_retriever in background and polls for pass.list + LTRlib.fa. Once those files exist, LTR_retriever is terminated (LAI step skipped). If a positive value is set and core outputs don't appear within that time, the step fails. [default: 0]"
       ),
       optparse::make_option(
         "--tesorter", type = "character", default = "auto",
