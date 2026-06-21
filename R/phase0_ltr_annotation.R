@@ -260,18 +260,21 @@ step0c_ltr_retriever <- function(params) {
 
   # Launch LTR_retriever in background, then poll for core outputs.
   # LTR_retriever produces pass.list and LTRlib.fa before the
-  # time-consuming LAI step. Once those files are ready, terminate
-  # LTR_retriever to skip LAI.  If LTR_retriever finishes on its own
-  # first, return its exit code.
+  # time-consuming LAI step. Once those files are ready AND stable
+  # (not still being written), terminate LTR_retriever to skip LAI.
+  # If LTR_retriever finishes on its own first, return its exit code.
   max_wait <- if (is.finite(params$ltr_retriever_timeout) &&
                   params$ltr_retriever_timeout > 0) {
     sprintf("if [ $elapsed -ge %d ]; then kill $pid 2>/dev/null; sleep 10; kill -9 $pid 2>/dev/null; wait $pid 2>/dev/null; exit 124; fi;",
             as.integer(params$ltr_retriever_timeout))
   } else ""
   log_msg(params, "Launching LTR_retriever (polling for core outputs every 30s) ...")
+  # Two-phase detection: (1) find files, (2) wait 60s to verify writes complete
   poll_cmd <- sprintf(
-    "{ %s & pid=$!; elapsed=0; while true; do sleep 30; elapsed=$((elapsed+30)); if { [ -s %s ] || [ -s %s ]; } && { [ -s %s ] || [ -s %s ]; }; then kill $pid 2>/dev/null; sleep 10; kill -9 $pid 2>/dev/null; wait $pid 2>/dev/null; exit 0; fi; if ! kill -0 $pid 2>/dev/null; then wait $pid; ex=$?; exit ${ex}; fi; %s done; }",
+    "{ %s & pid=$!; elapsed=0; while true; do sleep 30; elapsed=$((elapsed+30)); if { [ -s %s ] || [ -s %s ]; } && { [ -s %s ] || [ -s %s ]; }; then sleep 60; if { [ -s %s ] || [ -s %s ]; } && { [ -s %s ] || [ -s %s ]; }; then kill $pid 2>/dev/null; sleep 10; kill -9 $pid 2>/dev/null; wait $pid 2>/dev/null; exit 0; fi; fi; if ! kill -0 $pid 2>/dev/null; then wait $pid; ex=$?; exit ${ex}; fi; %s done; }",
     cmd,
+    shQuote(pass_list), shQuote(mod_pass_list),
+    shQuote(ltrlib_fa), shQuote(mod_ltrlib_fa),
     shQuote(pass_list), shQuote(mod_pass_list),
     shQuote(ltrlib_fa), shQuote(mod_ltrlib_fa),
     max_wait
