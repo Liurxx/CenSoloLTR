@@ -43,7 +43,7 @@ write_default_config <- function(filepath) {
     blast_evalue_rescue  = 1.0,
 
     # LTR_retriever control
-    ltr_retriever_timeout = 1800,
+    ltr_retriever_timeout = 0,
 
     # CEN/Peri-CEN parameters
     peri_extension_bp = 500000,

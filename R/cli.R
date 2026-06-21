@@ -114,9 +114,9 @@ build_option_parser <- function() {
         help = "Path to LTR_retriever [default: auto-detect]"
       ),
       optparse::make_option(
-        "--ltr-retriever-timeout", type = "integer", default = 1800,
+        "--ltr-retriever-timeout", type = "integer", default = 0,
         metavar = "SECONDS",
-        help = "Max runtime for LTR_retriever in seconds. LTR_retriever's core outputs (pass.list, LTRlib.fa, .out) are produced within ~15 min; the LAI all-vs-all BLAST afterwards can run for hours and is not needed for soloLTR annotation. After timeout, if core outputs exist, the pipeline continues. [default: 1800 (30 min)]"
+        help = "Max runtime for LTR_retriever in seconds (0 = no timeout). Set a positive value to kill LTR_retriever's LAI step (all-vs-all BLAST) on small genomes while keeping core outputs. For large genomes, leave at 0 to avoid killing the process before core outputs complete. [default: 0]"
       ),
       optparse::make_option(
         "--tesorter", type = "character", default = "auto",
@@ -373,7 +373,7 @@ parse_cli_args <- function(args = commandArgs(trailingOnly = TRUE)) {
 
   # ---- LTR_retriever control ----
   params$ltr_retriever_timeout <- as.integer(
-    get_param("ltr-retriever-timeout", 1800))
+    get_param("ltr-retriever-timeout", 0))
 
   # ---- Conda environment resolution ----
   conda_env <- opt[["conda-env"]]
