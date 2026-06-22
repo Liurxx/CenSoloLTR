@@ -270,13 +270,14 @@ step0c_ltr_retriever <- function(params) {
   } else ""
   log_msg(params, "Launching LTR_retriever (polling for core outputs every 30s) ...")
   # Two-phase detection: (1) find files, (2) wait 60s to verify writes complete
+  # Use basename() because the shell runs inside params$dirs$retriever (setwd)
   poll_cmd <- sprintf(
     "{ %s & pid=$!; elapsed=0; while true; do sleep 30; elapsed=$((elapsed+30)); if { [ -s %s ] || [ -s %s ]; } && { [ -s %s ] || [ -s %s ]; }; then sleep 60; if { [ -s %s ] || [ -s %s ]; } && { [ -s %s ] || [ -s %s ]; }; then kill $pid 2>/dev/null; sleep 10; kill -9 $pid 2>/dev/null; wait $pid 2>/dev/null; exit 0; fi; fi; if ! kill -0 $pid 2>/dev/null; then wait $pid; ex=$?; exit ${ex}; fi; %s done; }",
     cmd,
-    shQuote(pass_list), shQuote(mod_pass_list),
-    shQuote(ltrlib_fa), shQuote(mod_ltrlib_fa),
-    shQuote(pass_list), shQuote(mod_pass_list),
-    shQuote(ltrlib_fa), shQuote(mod_ltrlib_fa),
+    shQuote(basename(pass_list)), shQuote(basename(mod_pass_list)),
+    shQuote(basename(ltrlib_fa)), shQuote(basename(mod_ltrlib_fa)),
+    shQuote(basename(pass_list)), shQuote(basename(mod_pass_list)),
+    shQuote(basename(ltrlib_fa)), shQuote(basename(mod_ltrlib_fa)),
     max_wait
   )
 
