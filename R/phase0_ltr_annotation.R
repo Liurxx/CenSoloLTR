@@ -483,24 +483,27 @@ step0e_sololtr_detect <- function(params) {
 
   debug_log <- init_debug_log(params$dirs$sololtr, "phase0e_sololtr")
 
-  # ---- Generate RepeatMasker .out file if missing (LTR_retriever v2.9.x) ----
-  # LTR_retriever v2.9.0 may timeout before the annotation step that creates
-  # the .out file. v2.9.x solo_finder.pl reads RM .out format (positional arg),
-  # so we need to generate it ourselves if it doesn't exist.
+  # ---- Generate RepeatMasker .out file if missing or incomplete ----
+  # step 0c may create a symlink .out -> .mod.out, but the target may be
+  # incomplete if LTR_retriever was killed mid-RepeatMasker.  Remove any
+  # stale symlink/empty file so RepeatMasker writes a fresh output.
   if (!file.exists(rm_out) || file.info(rm_out)$size == 0) {
     log_msg(params, "RepeatMasker .out file not found, running RepeatMasker ...")
     if (!file.exists(genome_fa)) {
       warning("[Step 0e] Genome symlink not found: ", genome_fa)
       return(invisible(NULL))
     }
+    # Remove stale symlink / empty file to avoid RepeatMasker confusion
+    if (file.exists(rm_out)) file.remove(rm_out)
     cmd_rm <- sprintf(
-      "RepeatMasker -e ncbi -pa %d -q -no_is -norna -nolow -div 40 -lib %s -cutoff 225 %s > /dev/null 2>&1",
+      "RepeatMasker -e ncbi -pa %d -q -no_is -norna -nolow -div 40 -lib %s -cutoff 225 %s",
       params$ltr_threads, shQuote(basename(ltrlib_fa)), shQuote(basename(genome_fa))
     )
     run_external(cmd_rm, wd = params$dirs$retriever,
                  stderr_log = debug_log, echo_label = "RepeatMasker")
     if (!file.exists(rm_out) || file.info(rm_out)$size == 0) {
-      warning("[Step 0e] RepeatMasker failed to produce .out file.")
+      warning("[Step 0e] RepeatMasker failed to produce .out file. ",
+              "Check debug log: ", debug_log)
       return(invisible(NULL))
     }
   } else {
