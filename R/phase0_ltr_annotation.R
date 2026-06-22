@@ -483,18 +483,36 @@ step0e_sololtr_detect <- function(params) {
 
   debug_log <- init_debug_log(params$dirs$sololtr, "phase0e_sololtr")
 
-  # ---- Generate RepeatMasker .out file if missing or incomplete ----
-  # step 0c may create a symlink .out -> .mod.out, but the target may be
-  # incomplete if LTR_retriever was killed mid-RepeatMasker.  Remove any
-  # stale symlink/empty file so RepeatMasker writes a fresh output.
-  if (!file.exists(rm_out) || file.info(rm_out)$size == 0) {
+  # ---- Ensure .out file exists for solo_finder.pl ----
+  # LTR_retriever v3.x produces .mod.out (complete RepeatMasker output).
+  # Prefer that over running RepeatMasker again, which is very slow on
+  # large genomes (>500 MB).  Only run RepeatMasker as a last resort.
+  mod_out <- file.path(params$dirs$retriever,
+                       paste0(sample, ".genome.fasta.mod.out"))
+  rm_out  <- file.path(params$dirs$retriever,
+                       paste0(sample, ".genome.fasta.out"))
+
+  rm_ok <- FALSE
+  if (file.exists(rm_out) && file.info(rm_out)$size > 0) {
+    log_msg(params, sprintf("Using existing RM .out file: %s", rm_out))
+    rm_ok <- TRUE
+  } else if (file.exists(mod_out) && file.info(mod_out)$size > 0) {
+    # v3.x LTR_retriever already produced .mod.out — symlink to expected name
+    if (file.exists(rm_out)) file.remove(rm_out)
+    file.symlink(basename(mod_out), rm_out)
+    log_msg(params, sprintf("Symlinked LTR_retriever .mod.out: %s -> %s",
+                            rm_out, basename(mod_out)))
+    rm_ok <- TRUE
+  }
+
+  if (!rm_ok) {
     log_msg(params, "RepeatMasker .out file not found, running RepeatMasker ...")
     if (!file.exists(genome_fa)) {
       warning("[Step 0e] Genome symlink not found: ", genome_fa)
       return(invisible(NULL))
     }
-    # Remove stale symlink / empty file to avoid RepeatMasker confusion
     if (file.exists(rm_out)) file.remove(rm_out)
+    if (file.exists(mod_out) && file.info(mod_out)$size == 0) file.remove(mod_out)
     cmd_rm <- sprintf(
       "RepeatMasker -e ncbi -pa %d -q -no_is -norna -nolow -div 40 -lib %s -cutoff 225 %s",
       params$ltr_threads, shQuote(basename(ltrlib_fa)), shQuote(basename(genome_fa))
@@ -506,8 +524,7 @@ step0e_sololtr_detect <- function(params) {
               "Check debug log: ", debug_log)
       return(invisible(NULL))
     }
-  } else {
-    log_msg(params, sprintf("Using existing RM .out file: %s", rm_out))
+    rm_ok <- TRUE
   }
 
   # ---- Detect solo_finder.pl interface (v2.9.x vs v3.x) ----
