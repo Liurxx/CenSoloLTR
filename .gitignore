@@ -2,8 +2,8 @@
 *.o
 *.so
 *.dll
-CenSoloLTR.Rcheck/
-CenSoloLTR_*.tar.gz
+LTRtrace.Rcheck/
+LTRtrace_*.tar.gz
 src/*.o
 src/*.so
 src/*.dll
@@ -49,7 +49,7 @@ Thumbs.db
 *.sif
 *.sif~
 .fuse_hidden*
-CenSoloLTR_container
+LTRtrace_container
 
 # Temporary files
 tmp_*

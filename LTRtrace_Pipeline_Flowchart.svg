@@ -11,7 +11,7 @@
   text { font-family: "Helvetica Neue", Helvetica, Arial, "PingFang SC", "Microsoft YaHei", sans-serif; }
 </style>
 <rect width="2200" height="2220" fill="#FFFFFF"/>
-<text x="1100.0" y="50" text-anchor="middle" font-size="45" font-weight="700" fill="#1A1A1A">CenSoloLTR Pipeline v1.1.0</text>
+<text x="1100.0" y="50" text-anchor="middle" font-size="45" font-weight="700" fill="#1A1A1A">LTRtrace Pipeline v1.1.0</text>
 <text x="1100.0" y="90" text-anchor="middle" font-size="24" font-style="italic" fill="#888888">Genome-Centered SoloLTR Annotation for Centromere Regions</text>
   <text x="60" y="194.0" font-size="27" font-weight="700" fill="#2F5496">Input</text>
   <rect x="208" y="110" width="1704" height="150" rx="16" fill="none" stroke="#dbe5f1" stroke-width="1.4" stroke-dasharray="8,7"/>
@@ -137,5 +137,5 @@
     <tspan x="1100.0" dy="0">Final Outputs:  Classification Tables  |  CEN &amp; Arm FASTA  |  Family Composition Plots  |  Pipeline Log</tspan>
   </text>
   <path d="M 1465.0,1890.0 L 1465.0,1935.0 L 1100.0,1935.0 L 1100.0,1980" fill="none" stroke="#595959" stroke-width="2.2" marker-end="url(#arrow)"/>
-<text x="2145" y="2202" text-anchor="end" font-size="18" font-style="italic" fill="#CCCCCC">CenSoloLTR v1.1.0</text>
+<text x="2145" y="2202" text-anchor="end" font-size="18" font-style="italic" fill="#CCCCCC">LTRtrace v1.1.0</text>
 </svg>

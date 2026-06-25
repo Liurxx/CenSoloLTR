@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 # =========================================================================
-# CenSoloLTR — Genome-Centered SoloLTR Annotation Pipeline (exec wrapper)
+# LTRtrace — Tracing LTR Retrotransposons (exec wrapper)
 # =========================================================================
 # This script is installed alongside the R package as a fallback CLI entry.
 # The primary entry point is the symlink/copy installed into conda env bin/.
 #
-# Usage: CenSoloLTR -g genome.fa -c cen.bed -o ./output [options]
-#        CenSoloLTR -h
-#        CenSoloLTR -v
+# Usage: LTRtrace -g genome.fa -c cen.bed -o ./output [options]
+#        LTRtrace -h
+#        LTRtrace -v
 # =========================================================================
 
 set -euo pipefail
@@ -20,4 +20,4 @@ fi
 
 # No -- separator: with Rscript -e, everything after the expression goes
 # directly to commandArgs(trailingOnly = TRUE) without prefix.
-exec "$R_EXEC" --no-save --no-restore -e "CenSoloLTR::run_pipeline()" "$@"
+exec "$R_EXEC" --no-save --no-restore -e "LTRtrace::run_pipeline()" "$@"

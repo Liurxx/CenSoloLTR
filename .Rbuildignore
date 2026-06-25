@@ -1,5 +1,5 @@
-^CenSoloLTR\.Rcheck$
-^CenSoloLTR_.*\.tar\.gz$
+^LTRtrace\.Rcheck$
+^LTRtrace_.*\.tar\.gz$
 ^\.git$
 ^\.gitignore$
 ^\.Rproj\.user$
