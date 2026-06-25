@@ -4,7 +4,7 @@
 
 LTRtrace was designed to trace LTR retrotransposons by integrating intact LTR-RT annotation, reusable LTR library construction, taxonomic classification, and automated SoloLTR detection. Starting from a genome FASTA and centromere BED file, the pipeline executes 6 phases (10 steps) with *de novo* LTR annotation and centromere/pericentromere/arm region analysis.
 
-![Pipeline Flowchart](LTRtrace_Pipeline_Flowchart.png)
+![Pipeline Flowchart](LTRtrace_Pipeline_Flowchart.svg)
 
 ## Overview
 
