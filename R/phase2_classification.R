@@ -1,5 +1,5 @@
 # =========================================================================
-# CenSoloLTR - Phase 2: SoloLTR Classification
+# LTRtrace - Phase 2: SoloLTR Classification
 # =========================================================================
 # Step 3: BLAST classify soloLTRs against NR LTR library
 # Step 4: Deep annotation rescue for CEN/Peri-CEN Unclassified
@@ -11,7 +11,7 @@
 #' non-redundant LTR library, and assigns superfamily based on
 #' best bitscore hit.
 #'
-#' @param params CenSoloLTRConfig object
+#' @param params LTRtraceConfig object
 #' @export
 step3_classify_sololtr <- function(params) {
   step_header(params, "3", 8, "BLAST Classify SoloLTRs")
@@ -165,7 +165,7 @@ step3_classify_sololtr <- function(params) {
 #' as Unclassified in Step 3, this step performs a relaxed BLAST search
 #' to attempt rescue classification.
 #'
-#' @param params CenSoloLTRConfig object
+#' @param params LTRtraceConfig object
 #' @export
 step4_deep_annotation <- function(params) {
   step_header(params, "4", 9, "Deep Annotation: CEN/Peri-CEN Rescue")

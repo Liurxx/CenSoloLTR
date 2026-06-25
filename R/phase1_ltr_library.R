@@ -1,5 +1,5 @@
 # =========================================================================
-# CenSoloLTR - Phase 1: LTR Library Construction
+# LTRtrace - Phase 1: LTR Library Construction
 # =========================================================================
 # Step 1: Extract Complete LTR sequences from TEsorter .cls.tsv
 # Step 2: CD-HIT clustering → Non-Redundant LTR library
@@ -10,7 +10,7 @@
 #' Parses TEsorter .cls.tsv output, filters for Complete=yes entries,
 #' extracts genomic sequences, and writes Complete_LTR.fasta.
 #'
-#' @param params CenSoloLTRConfig object
+#' @param params LTRtraceConfig object
 #' @export
 step1_extract_complete_ltr <- function(params) {
   step_header(params, "1", 6, "Extract Complete LTR Sequences")
@@ -112,7 +112,7 @@ step1_extract_complete_ltr <- function(params) {
 #' Clusters Complete LTR sequences at the configured identity/covearge
 #' thresholds. Produces NR_LTR_library.fasta used for downstream BLAST.
 #'
-#' @param params CenSoloLTRConfig object
+#' @param params LTRtraceConfig object
 #' @export
 step2_cluster_nr_library <- function(params) {
   step_header(params, "2", 7, "CD-HIT Cluster → NR LTR Library")

@@ -1,21 +1,24 @@
-Package: CenSoloLTR
+Package: LTRtrace
 Type: Package
-Title: Genome-Centered SoloLTR Annotation Pipeline for Centromere Regions
+Title: Tracing LTR Retrotransposons by Integrating Intact LTR-RT Annotation,
+    Reusable LTR Library Construction, Taxonomic Classification, and
+    Automated SoloLTR Detection
 Version: 1.1.0
-Date: 2026-06-16
+Date: 2026-06-25
 Authors@R: c(
     person("User", "Liurxx", role = c("aut", "cre"),
            email = "liurxx@example.com"))
-Description: An integrated bioinformatics pipeline for de novo LTR
-    retrotransposon annotation, soloLTR detection, and centromere/pericentromere
-    region analysis. Starting from a genome FASTA file and centromere BED file,
-    the pipeline runs LTR_FINDER, LTR_HARVEST, LTR_retriever, TEsorter, CD-HIT,
-    and BLAST to produce comprehensive soloLTR classification, deep annotation
-    of CEN/Peri-CEN regions, FASTA sequence extraction, and publication-ready
-    stacked bar plots of LTR family composition.
+Description: LTRtrace was designed to trace LTR retrotransposons by integrating
+    intact LTR-RT annotation, reusable LTR library construction, taxonomic
+    classification, and automated SoloLTR detection. Starting from a genome
+    FASTA file and centromere BED file, the pipeline runs LTR_FINDER,
+    LTR_HARVEST, LTR_retriever, TEsorter, CD-HIT, and BLAST to produce
+    comprehensive soloLTR classification, deep annotation of CEN/Peri-CEN
+    regions, FASTA sequence extraction, and publication-ready stacked bar
+    plots of LTR family composition.
 License: MIT + file LICENSE
-URL: https://github.com/user/CenSoloLTR
-BugReports: https://github.com/user/CenSoloLTR/issues
+URL: https://github.com/Liurxx/LTRtrace
+BugReports: https://github.com/Liurxx/LTRtrace/issues
 Encoding: UTF-8
 RoxygenNote: 7.3.0
 Depends:

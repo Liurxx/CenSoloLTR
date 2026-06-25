@@ -1,5 +1,5 @@
 # =========================================================================
-# CenSoloLTR - Fabaceae Pre-built NR LTR Database
+# LTRtrace - Fabaceae Pre-built NR LTR Database
 # =========================================================================
 # Provides 18 pre-built non-redundant LTR libraries from Fabaceae species.
 # When --fabaceae-db <ID> is specified, the pipeline uses the pre-built
@@ -209,7 +209,7 @@ get_fabaceae_db_path <- function(id) {
   }
   fasta_path <- system.file("extdata", "fabaceae_db", id,
                             paste0(id, "_NR_LTR_library.fasta"),
-                            package = "CenSoloLTR")
+                            package = "LTRtrace")
   if (!file.exists(fasta_path) || file.info(fasta_path)$size == 0) {
     stop(sprintf(
       "Fabaceae database file not found or empty: %s\nPackage may need reinstallation.",
@@ -224,7 +224,7 @@ get_fabaceae_db_path <- function(id) {
 #' When --fabaceae-db is specified, returns the pre-built library path.
 #' Otherwise returns the standard pipeline output path (Step 2 CD-HIT result).
 #'
-#' @param params CenSoloLTRConfig object
+#' @param params LTRtraceConfig object
 #' @return Absolute path to the NR LTR library FASTA file
 #' @noRd
 get_nr_lib_path <- function(params) {

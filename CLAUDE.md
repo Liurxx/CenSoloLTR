@@ -1,11 +1,10 @@
-# CenSoloLTR — CLAUDE.md
+# LTRtrace — CLAUDE.md
 
 ## Project Overview
 
-Genome-Centered SoloLTR Annotation Pipeline for Centromere Regions (v1.1.0).  
-An integrated bioinformatics pipeline for *de novo* LTR retrotransposon annotation, soloLTR detection, and centromere/pericentromere/arm region analysis.
+LTRtrace v1.1.0 — Tracing LTR retrotransposons by integrating intact LTR-RT annotation, reusable LTR library construction, taxonomic classification, and automated SoloLTR detection.
 
-GitHub: https://github.com/Liurxx/CenSoloLTR
+GitHub: https://github.com/Liurxx/LTRtrace
 
 ## Critical Rules
 
@@ -21,7 +20,7 @@ GitHub: https://github.com/Liurxx/CenSoloLTR
 - If a force push is needed, always verify the remote is correct first: `git remote -v`
 
 ### Container
-- Repository: `Liurxx/CenSoloLTR` (renamed from `Liurxx/CenSoloLTR_v1.1.0`)
+- Repository: `Liurxx/LTRtrace`
 - Pre-built Singularity images are available upon request (contact corresponding author).
 - The `build_singularity_container.sh` script handles both sandbox and fakeroot modes.
 - Container includes RepeatMasker Libraries (~261MB) auto-detected from host conda environment via `-l` flag.
@@ -54,9 +53,12 @@ LTR_retriever v3.x outputs files with `.mod.` infix. The pipeline creates symlin
 ### LTR_retriever Error Handling (Fixed 2026-06-19)
 `step0c_ltr_retriever` non-zero exit codes were downgraded to warnings even when core outputs were missing. The essential files check now properly reports failures.
 
+### LTR_retriever .mod.out Missing (Fixed 2026-06-23)
+Step 0c polling only waited for pass.list+LTRlib.fa before killing LTR_retriever, sometimes missing the `.mod.out` file needed by step 0e. Fixed by adding `.out`/`.mod.out` to the polling condition. Step 0e fallback RepeatMasker now uses `stop()` on failure instead of silent `warning()`.
+
 ## Dependencies
 
-All bioinformatics tools are installed via conda/mamba into the `censololtr` environment:
+All bioinformatics tools are installed via conda/mamba into the `ltrtrace` environment:
 - LTR_FINDER, LTR_HARVEST, LTR_retriever, TEsorter, RepeatMasker
 - BLAST+, CD-HIT, seqtk, samtools, GenomeTools
 - R (>= 4.0) with Biostrings, tidyverse, ggplot2, optparse

@@ -1,12 +1,12 @@
 # =========================================================================
-# CenSoloLTR v1.0.1 — Conda Environment Specification
+# LTRtrace v1.0.1 — Conda Environment Specification
 # =========================================================================
 # Create:  conda env create -f environment.yaml
 # Update:  conda env update -f environment.yaml
-# Activate: conda activate censololtr
+# Activate: conda activate ltrtrace
 # =========================================================================
 
-name: censololtr
+name: ltrtrace
 channels:
   - conda-forge
   - bioconda
@@ -16,7 +16,7 @@ dependencies:
   - r-base >=4.0
   - r-essentials
 
-  # ---- R packages for CenSoloLTR ----
+  # ---- R packages for LTRtrace ----
   - r-optparse
   - r-yaml
   - r-dplyr

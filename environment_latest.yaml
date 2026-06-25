@@ -1,10 +1,10 @@
 # =========================================================================
-# CenSoloLTR v1.1.0 — Conda Environment
+# LTRtrace v1.1.0 — Conda Environment
 # =========================================================================
 # Create: mamba env create -f environment_latest.yaml
-# Activate: conda activate censololtr
+# Activate: conda activate ltrtrace
 # =========================================================================
-name: censololtr
+name: ltrtrace
 channels:
   - defaults
   - bioconda

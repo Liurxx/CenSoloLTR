@@ -1,19 +1,19 @@
 #!/usr/bin/env bash
 # =========================================================================
-# CenSoloLTR v1.1.0 — Dependency Installation Script
+# LTRtrace v1.1.0 — Dependency Installation Script
 # =========================================================================
-# Installs all dependencies (conda/mamba environment + R packages + CenSoloLTR)
+# Installs all dependencies (conda/mamba environment + R packages + LTRtrace)
 # in a single run. Requires: mamba (recommended) or conda
 #
 # Usage:
 #   bash install_dependencies.sh
 #
 # What this script does:
-#   1. Creates conda environment 'censololtr' with all bioinformatics tools
+#   1. Creates conda environment 'ltrtrace' with all bioinformatics tools
 #      (uses mamba for fast solving if available, falls back to conda)
 #   2. Installs R Bioconductor packages (Biostrings)
-#   3. Builds and installs the CenSoloLTR R package
-#   4. Creates CLI wrapper 'CenSoloLTR' in conda env PATH
+#   3. Builds and installs the LTRtrace R package
+#   4. Creates CLI wrapper 'LTRtrace' in conda env PATH
 #
 # Minimum version requirements for external tools:
 #   ltr_finder             >= 1.07
@@ -32,7 +32,7 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-ENV_NAME="censololtr"
+ENV_NAME="ltrtrace"
 
 # ---- Colors ----
 RED='\033[0;31m'
@@ -44,7 +44,7 @@ NC='\033[0m'
 banner() {
     echo ""
     echo -e "${GREEN}╔══════════════════════════════════════════════════════════════╗${NC}"
-    echo -e "${GREEN}║  CenSoloLTR v1.1.0 — Dependency Installation                ║${NC}"
+    echo -e "${GREEN}║  LTRtrace v1.1.0 — Dependency Installation                ║${NC}"
     echo -e "${GREEN}╚══════════════════════════════════════════════════════════════╝${NC}"
     echo ""
 }
@@ -107,9 +107,9 @@ ENV_YAML="${SCRIPT_DIR}/environment_latest.yaml"
 if [ ! -f "${ENV_YAML}" ]; then
     # Generate environment file on-the-fly without version pins
     echo -e "${YELLOW}  environment_latest.yaml not found, generating from template ...${NC}"
-    ENV_YAML="/tmp/censololtr_env_$$.yaml"
+    ENV_YAML="/tmp/ltrtrace_env_$$.yaml"
     cat > "${ENV_YAML}" << 'EOF'
-name: censololtr
+name: ltrtrace
 channels:
   - defaults
   - bioconda
@@ -230,7 +230,7 @@ if [ "${NEED_CREATE}" = true ]; then
 
     # Run solver with real-time output via temp file + spinner, so the user
     # can see progress instead of staring at a blank screen.
-    ENV_LOG="/tmp/censololtr_env_$$.log"
+    ENV_LOG="/tmp/ltrtrace_env_$$.log"
     echo -n "  Solving ... "
     set +e
     ${PKG_MGR} env create -f "${ENV_YAML}" --strict-channel-priority --verbose > "${ENV_LOG}" 2>&1 &
@@ -256,9 +256,9 @@ if [ "${NEED_CREATE}" = true ]; then
         # openmpi post-link script may fail on servers whose /bin/sh layout
         # differs from the build host.  All packages (including openmpi) are
         # already installed; only the post-link cleanup script failed.
-        # CenSoloLTR does not use MPI, so this is harmless.
+        # LTRtrace does not use MPI, so this is harmless.
         if echo "${ENV_OUTPUT}" | grep -q "pre/post link script.*openmpi"; then
-            echo -e "${YELLOW}  openmpi post-link script failed (non-critical — CenSoloLTR${NC}"
+            echo -e "${YELLOW}  openmpi post-link script failed (non-critical — LTRtrace${NC}"
             echo -e "${YELLOW}  does not use MPI).  Environment is usable.${NC}"
         else
             echo "${ENV_OUTPUT}"
@@ -303,9 +303,9 @@ cat("  All R packages installed.\n")
 '
 echo -e "${GREEN}  Done.${NC}"
 
-# ---- Step 4: Install CenSoloLTR R package ----
+# ---- Step 4: Install LTRtrace R package ----
 echo ""
-echo -e "${YELLOW}[4/4] Installing CenSoloLTR v1.1.0 R package ...${NC}"
+echo -e "${YELLOW}[4/4] Installing LTRtrace v1.1.0 R package ...${NC}"
 
 PKG_DIR="${SCRIPT_DIR}"
 if [ -f "${SCRIPT_DIR}/../DESCRIPTION" ] && [ ! -f "${SCRIPT_DIR}/DESCRIPTION" ]; then
@@ -319,11 +319,11 @@ R CMD INSTALL --no-multiarch "${PKG_DIR}"
 echo ""
 echo -e "${YELLOW}Creating CLI wrapper in conda env bin/ ...${NC}"
 PKG_BIN_DIR="$(dirname "$(which Rscript)")"
-cat > "${PKG_BIN_DIR}/CenSoloLTR" << 'WRAPPER'
+cat > "${PKG_BIN_DIR}/LTRtrace" << 'WRAPPER'
 #!/usr/bin/env bash
-exec Rscript --no-save --no-restore -e "CenSoloLTR::run_pipeline()" -- "$@"
+exec Rscript --no-save --no-restore -e "LTRtrace::run_pipeline()" -- "$@"
 WRAPPER
-chmod +x "${PKG_BIN_DIR}/CenSoloLTR"
+chmod +x "${PKG_BIN_DIR}/LTRtrace"
 
 # ---- Done ----
 echo ""
@@ -333,15 +333,15 @@ echo -e "${GREEN}╚════════════════════
 echo ""
 echo "Quick test:"
 echo "  conda activate ${ENV_NAME}"
-echo "  CenSoloLTR -v"
-echo "  CenSoloLTR -h"
+echo "  LTRtrace -v"
+echo "  LTRtrace -h"
 echo ""
 echo "Run the pipeline:"
 echo "  conda activate ${ENV_NAME}"
-echo "  CenSoloLTR -g genome.fa -c cen.bed -o ./output -t 16"
+echo "  LTRtrace -g genome.fa -c cen.bed -o ./output -t 16"
 echo ""
 echo "Use with Fabaceae pre-built database:"
 echo "  conda activate ${ENV_NAME}"
-echo "  CenSoloLTR --list-db              # List available species"
-echo "  CenSoloLTR -g genome.fa -c cen.bed -o ./output --fabaceae-db A17"
+echo "  LTRtrace --list-db              # List available species"
+echo "  LTRtrace -g genome.fa -c cen.bed -o ./output --fabaceae-db A17"
 echo ""

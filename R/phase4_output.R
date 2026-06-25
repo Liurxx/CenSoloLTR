@@ -1,5 +1,5 @@
 # =========================================================================
-# CenSoloLTR - Phase 4: Output Generation
+# LTRtrace - Phase 4: Output Generation
 # =========================================================================
 # Step 7: Family composition statistics + publication-ready visualization
 # =========================================================================
@@ -56,7 +56,7 @@ save_plot_three <- function(p, dir_out, prefix, w = 14, h = 7.5) {
 #' Each plot is saved in PDF, SVG, and PNG formats.
 #' Two statistical summary tables are also generated.
 #'
-#' @param params CenSoloLTRConfig object
+#' @param params LTRtraceConfig object
 #' @export
 step7_family_stats_plot <- function(params) {
   step_header(params, "7", 12, "Family Statistics + Publication Plots")

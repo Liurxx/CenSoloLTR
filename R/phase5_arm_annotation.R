@@ -1,5 +1,5 @@
 # =========================================================================
-# CenSoloLTR - Phase 5: Arm Region SoloLTR Annotation
+# LTRtrace - Phase 5: Arm Region SoloLTR Annotation
 # =========================================================================
 # Step 8: Arm SoloLTR deep annotation with BLAST rescue
 # Step 9: Extract Arm SoloLTR FASTA sequences
@@ -11,7 +11,7 @@
 #' Unclassified Arm soloLTRs are rescued via BLASTn against the NR LTR library,
 #' keeping the single best hit per query by bitscore.
 #'
-#' @param params CenSoloLTRConfig object
+#' @param params LTRtraceConfig object
 #' @export
 step8_arm_deep_annotation <- function(params) {
   step_header(params, "5", 8, "Arm SoloLTR Deep Annotation + Rescue")
@@ -189,7 +189,7 @@ step8_arm_deep_annotation <- function(params) {
 #' from the Arm annotation table. FASTA headers follow the format:
 #' {Sample}|{Superfamily}|{Region}|{solo_id}
 #'
-#' @param params CenSoloLTRConfig object
+#' @param params LTRtraceConfig object
 #' @export
 step9_extract_arm_fasta <- function(params) {
   step_header(params, "5", 9, "Extract Arm FASTA Sequences")

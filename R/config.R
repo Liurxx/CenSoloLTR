@@ -1,5 +1,5 @@
 # =========================================================================
-# CenSoloLTR - Configuration Management
+# LTRtrace - Configuration Management
 # =========================================================================
 
 #' Write a default YAML config file
@@ -11,7 +11,7 @@ write_default_config <- function(filepath) {
     # Required input
     genome_file   = "/path/to/genome.fa",
     cen_bed_file  = "/path/to/cen.bed",
-    outdir        = "./CenSoloLTR_output",
+    outdir        = "./LTRtrace_output",
     sample_name   = "auto",
 
     # Threads

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # =========================================================================
-# CenSoloLTR v1.1.0 — Singularity Container Build Script
+# LTRtrace v1.1.0 — Singularity Container Build Script
 # =========================================================================
 # Builds an Ubuntu 22.04 Singularity container with all pipeline dependencies.
 # NO root required — uses fakeroot mode (Singularity >= 3.5) or sandbox.
@@ -10,12 +10,12 @@
 #
 # Options:
 #   -o PATH   Output SIF container path
-#   -s PATH   CenSoloLTR R package source directory
+#   -s PATH   LTRtrace R package source directory
 #   -t PATH   Temporary build directory
 #   -h        Show help
 #
 # After build:
-#   singularity exec censololtr.sif CenSoloLTR -g genome.fa -c cen.bed -o ./output -t 16
+#   singularity exec ltrtrace.sif LTRtrace -g genome.fa -c cen.bed -o ./output -t 16
 # =========================================================================
 set -euo pipefail
 
@@ -53,7 +53,7 @@ DOCKER_REGISTRY=""
 CONDA_MIRROR=""
 
 # --- Conda environment name ---
-ENV_NAME="censololtr"
+ENV_NAME="ltrtrace"
 
 # --- Software tool minimum versions (informational, solver resolves exact) ---
 R_VERSION_MIN="4.0"
@@ -69,8 +69,8 @@ CDHIT_MIN="4.6"
 SEQTK_MIN="1.4"
 SAMTOOLS_MIN="1.9"
 
-# --- CenSoloLTR ---
-CENSOLOLTR_VERSION="1.1.0"
+# --- LTRtrace ---
+LTRTRACE_VERSION="1.1.0"
 
 # --- Conda channels (in priority order) ---
 # On Ubuntu 22.04 (glibc 2.35), modern conda-forge works perfectly
@@ -93,7 +93,7 @@ NC='\033[0m'
 banner() {
     echo ""
     echo -e "${GREEN}╔══════════════════════════════════════════════════════════════╗${NC}"
-    echo -e "${GREEN}║  CenSoloLTR v${CENSOLOLTR_VERSION} — Singularity Container Build              ║${NC}"
+    echo -e "${GREEN}║  LTRtrace v${LTRTRACE_VERSION} — Singularity Container Build              ║${NC}"
     echo -e "${GREEN}╚══════════════════════════════════════════════════════════════╝${NC}"
     echo -e "  Base image:    ubuntu:${UBUNTU_VERSION}"
     echo -e "  Miniforge3:    ${MINIFORGE3_VERSION}"
@@ -123,15 +123,15 @@ print_config() {
 # =========================================================================
 build_via_fakeroot() {
     local BUILD_DIR="${TMPDIR}/fakeroot_build"
-    local DEF_FILE="${BUILD_DIR}/CenSoloLTR.def"
+    local DEF_FILE="${BUILD_DIR}/LTRtrace.def"
 
     echo -e "${YELLOW}Building container via fakeroot mode ...${NC}"
     echo ""
 
     mkdir -p "${BUILD_DIR}"
 
-    # Copy CenSoloLTR source into build context (for %files to pick up)
-    cp -r "${CENSOLOLTR_SRC}" "${BUILD_DIR}/CenSoloLTR_src"
+    # Copy LTRtrace source into build context (for %files to pick up)
+    cp -r "${LTRTRACE_SRC}" "${BUILD_DIR}/LTRtrace_src"
 
     # Copy RepeatMasker Libraries into build context (for %files to pick up)
     # Empty directory if not found — %files requires the source to exist
@@ -229,12 +229,12 @@ build_via_sandbox() {
         echo -e "  ${GREEN}Including RepeatMasker Libraries from host${NC}"
     fi
 
-    # Use --bind to inject the script, Miniforge3 installer, and CenSoloLTR
+    # Use --bind to inject the script, Miniforge3 installer, and LTRtrace
     # source into the container. No network download needed inside the sandbox.
     singularity exec --writable \
         --bind "${POST_SCRIPT}:/tmp/post_install.sh:ro" \
         --bind "${MINIFORGE_INSTALLER}:/tmp/miniforge.sh:ro" \
-        --bind "${CENSOLOLTR_SRC}:/tmp/CenSoloLTR_src:ro" \
+        --bind "${LTRTRACE_SRC}:/tmp/LTRtrace_src:ro" \
         ${RMB_BIND} \
         "${SANDBOX_DIR}" \
         /bin/bash /tmp/post_install.sh
@@ -264,8 +264,8 @@ RUNEOF
 
     cat > "${SANDBOX_DIR}/.singularity.d/labels.json" << LABELSEOF
 {
-  "Author": "CenSoloLTR",
-  "Version": "${CENSOLOLTR_VERSION}",
+  "Author": "LTRtrace",
+  "Version": "${LTRTRACE_VERSION}",
   "Base_Ubuntu": "${UBUNTU_VERSION}",
   "Miniforge3": "${MINIFORGE3_VERSION}"
 }
@@ -315,8 +315,8 @@ Bootstrap: docker
 From: ${FROM_IMAGE}
 
 %files
-    # Copy CenSoloLTR R package source into container
-    CenSoloLTR_src /tmp/CenSoloLTR_src
+    # Copy LTRtrace R package source into container
+    LTRtrace_src /tmp/LTRtrace_src
     # Copy RepeatMasker Libraries (if available on host)
     RepeatMasker_Libraries /tmp/RepeatMasker_Libraries
 
@@ -402,22 +402,22 @@ ENVEOF
         cp -r /tmp/RepeatMasker_Libraries/* /opt/conda/envs/${ENV_NAME}/share/RepeatMasker/Libraries/
     fi
 
-    # --- Install CenSoloLTR R package ---
+    # --- Install LTRtrace R package ---
     . /opt/conda/etc/profile.d/conda.sh
     conda activate ${ENV_NAME}
-    if [ -f /tmp/CenSoloLTR_src/DESCRIPTION ]; then
-        R CMD INSTALL --no-multiarch /tmp/CenSoloLTR_src
+    if [ -f /tmp/LTRtrace_src/DESCRIPTION ]; then
+        R CMD INSTALL --no-multiarch /tmp/LTRtrace_src
     else
-        echo "WARNING: CenSoloLTR source not found, skipping R package install"
+        echo "WARNING: LTRtrace source not found, skipping R package install"
     fi
 
-    # Create CenSoloLTR CLI wrapper
+    # Create LTRtrace CLI wrapper
     BIN_DIR="\$(dirname "\$(which Rscript)")"
-    cat > "\${BIN_DIR}/CenSoloLTR" << 'WRAPEOF'
+    cat > "\${BIN_DIR}/LTRtrace" << 'WRAPEOF'
 #!/usr/bin/env bash
-exec Rscript --no-save --no-restore -e "CenSoloLTR::run_pipeline()" -- "\$@"
+exec Rscript --no-save --no-restore -e "LTRtrace::run_pipeline()" -- "\$@"
 WRAPEOF
-    chmod +x "\${BIN_DIR}/CenSoloLTR"
+    chmod +x "\${BIN_DIR}/LTRtrace"
 
     # --- Make conda env auto-available ---
     echo '. /opt/conda/etc/profile.d/conda.sh' >> /etc/bash.bashrc
@@ -428,8 +428,8 @@ WRAPEOF
     rm -rf /var/lib/apt/lists/* /tmp/*
 
 %labels
-    Author CenSoloLTR
-    Version ${CENSOLOLTR_VERSION}
+    Author LTRtrace
+    Version ${LTRTRACE_VERSION}
     Base_Ubuntu ${UBUNTU_VERSION}
     Miniforge3 ${MINIFORGE3_VERSION}
 
@@ -440,14 +440,14 @@ WRAPEOF
     exec "\$@"
 
 %help
-    CenSoloLTR v${CENSOLOLTR_VERSION} Singularity Container
+    LTRtrace v${LTRTRACE_VERSION} Singularity Container
 
     Quick test:
-      singularity exec ${OUTPUT_SIF} CenSoloLTR --version
-      singularity exec ${OUTPUT_SIF} CenSoloLTR --help
+      singularity exec ${OUTPUT_SIF} LTRtrace --version
+      singularity exec ${OUTPUT_SIF} LTRtrace --help
 
     Run pipeline:
-      singularity exec ${OUTPUT_SIF} CenSoloLTR -g genome.fa -c cen.bed -o ./output -t 16
+      singularity exec ${OUTPUT_SIF} LTRtrace -g genome.fa -c cen.bed -o ./output -t 16
 DEFEOF
 }
 
@@ -474,7 +474,7 @@ conda config --set always_yes yes
 
 # --- Conda environment ---
 # Includes conda compilers (gcc, g++, gfortran) as replacement for
-# build-essential; R CMD INSTALL needs them to compile the CenSoloLTR package.
+# build-essential; R CMD INSTALL needs them to compile the LTRtrace package.
 cat > /tmp/env.yaml << 'ENVEOF'
 name: ${ENV_NAME}
 channels:
@@ -525,23 +525,23 @@ if [ -d /tmp/RepeatMasker_Libraries ] && [ -f /tmp/RepeatMasker_Libraries/Dfam.h
     cp -r /tmp/RepeatMasker_Libraries/* /opt/conda/envs/${ENV_NAME}/share/RepeatMasker/Libraries/
 fi
 
-# --- Install CenSoloLTR ---
+# --- Install LTRtrace ---
 . /opt/conda/etc/profile.d/conda.sh
 set +u  # conda activate may reference unbound CONDA_BACKUP_* vars
 conda activate ${ENV_NAME}
 set -u
-if [ -f /tmp/CenSoloLTR_src/DESCRIPTION ]; then
-    R CMD INSTALL --no-multiarch /tmp/CenSoloLTR_src
+if [ -f /tmp/LTRtrace_src/DESCRIPTION ]; then
+    R CMD INSTALL --no-multiarch /tmp/LTRtrace_src
 fi
 
-# Create CenSoloLTR CLI wrapper in the conda env bin/ directory
+# Create LTRtrace CLI wrapper in the conda env bin/ directory
 BIN_DIR="\$(dirname "\$(which Rscript)")"
-cat > "\${BIN_DIR}/CenSoloLTR" << 'WRAPPEREOF'
+cat > "\${BIN_DIR}/LTRtrace" << 'WRAPPEREOF'
 #!/usr/bin/env bash
-exec Rscript --no-save --no-restore -e "CenSoloLTR::run_pipeline()" -- "\$@"
+exec Rscript --no-save --no-restore -e "LTRtrace::run_pipeline()" -- "\$@"
 WRAPPEREOF
-chmod +x "\${BIN_DIR}/CenSoloLTR"
-# /tmp/CenSoloLTR_src is bind-mounted, do not remove
+chmod +x "\${BIN_DIR}/LTRtrace"
+# /tmp/LTRtrace_src is bind-mounted, do not remove
 
 # --- Cleanup ---
 # Skip bind-mounted files (read-only); only remove writable temp files
@@ -554,14 +554,14 @@ POSTEOF
 # Create host-side wrapper script
 # =========================================================================
 write_wrapper() {
-    local WRAPPER="${CENSOLOLTR_SRC}/CenSoloLTR_container"
+    local WRAPPER="${LTRTRACE_SRC}/LTRtrace_container"
     local CONTAINER_PATH="${OUTPUT_SIF}"
 
     cat > "${WRAPPER}" << WRAPEOF
 #!/usr/bin/env bash
-# CenSoloLTR container wrapper — auto-generated
-# Usage: CenSoloLTR_container [args...]
-exec singularity exec "${CONTAINER_PATH}" CenSoloLTR "\$@"
+# LTRtrace container wrapper — auto-generated
+# Usage: LTRtrace_container [args...]
+exec singularity exec "${CONTAINER_PATH}" LTRtrace "\$@"
 WRAPEOF
     chmod +x "${WRAPPER}"
 
@@ -573,9 +573,9 @@ WRAPEOF
 # Main
 # =========================================================================
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-OUTPUT_SIF="${SCRIPT_DIR}/censololtr_v${CENSOLOLTR_VERSION}.sif"
-CENSOLOLTR_SRC="${SCRIPT_DIR}"
-TMPDIR="/tmp/censololtr_sif_build_$$"
+OUTPUT_SIF="${SCRIPT_DIR}/ltrtrace_v${LTRTRACE_VERSION}.sif"
+LTRTRACE_SRC="${SCRIPT_DIR}"
+TMPDIR="/tmp/ltrtrace_sif_build_$$"
 FAKEROOT_AVAILABLE=false
 
 usage() {
@@ -584,8 +584,8 @@ Usage: $0 [options]
 
 Options:
   -o PATH   Output SIF container path [default: ${OUTPUT_SIF}]
-  -s PATH   CenSoloLTR R package source directory [default: auto-detect]
-  -t PATH   Temporary build directory [default: /tmp/censololtr_sif_build_XXXXX]
+  -s PATH   LTRtrace R package source directory [default: auto-detect]
+  -t PATH   Temporary build directory [default: /tmp/ltrtrace_sif_build_XXXXX]
   -l PATH   RepeatMasker Libraries directory [default: auto-detect]
   -h        Show this help
 USAGEEOF
@@ -596,7 +596,7 @@ RMB_LIBRARIES=""
 while getopts "o:s:t:l:h" opt; do
     case ${opt} in
         o) OUTPUT_SIF="$(realpath "${OPTARG}")" ;;
-        s) CENSOLOLTR_SRC="$(realpath "${OPTARG}")" ;;
+        s) LTRTRACE_SRC="$(realpath "${OPTARG}")" ;;
         t) TMPDIR="${OPTARG}" ;;
         l) RMB_LIBRARIES="${OPTARG}" ;;
         h) usage ;;
@@ -608,14 +608,14 @@ done
 TMPDIR="$(realpath -m "${TMPDIR}" 2>/dev/null || readlink -f "${TMPDIR}" 2>/dev/null || echo "${TMPDIR}")"
 OUTPUT_SIF="$(realpath -m "${OUTPUT_SIF}" 2>/dev/null || readlink -f "${OUTPUT_SIF}" 2>/dev/null || echo "${OUTPUT_SIF}")"
 
-# Safety: TMPDIR must NOT be inside CenSoloLTR source tree
-if [[ "${TMPDIR}" == "${CENSOLOLTR_SRC}"/* ]]; then
-    echo -e "${RED}ERROR: Temp directory must be OUTSIDE the CenSoloLTR source tree.${NC}"
+# Safety: TMPDIR must NOT be inside LTRtrace source tree
+if [[ "${TMPDIR}" == "${LTRTRACE_SRC}"/* ]]; then
+    echo -e "${RED}ERROR: Temp directory must be OUTSIDE the LTRtrace source tree.${NC}"
     echo "  TMPDIR:     ${TMPDIR}"
-    echo "  Source:     ${CENSOLOLTR_SRC}"
+    echo "  Source:     ${LTRTRACE_SRC}"
     echo ""
     echo "Use -t with an absolute path outside the repo, e.g.:"
-    echo "  bash $0 -t ~/tmp_censololtr_build"
+    echo "  bash $0 -t ~/tmp_ltrtrace_build"
     exit 1
 fi
 
@@ -635,23 +635,23 @@ fi
 SIF_VER=$(singularity --version 2>&1 || true)
 echo -e "${BLUE}Singularity:${NC} ${SIF_VER}"
 
-# Check CenSoloLTR source
-if [ ! -f "${CENSOLOLTR_SRC}/DESCRIPTION" ]; then
-    echo -e "${RED}ERROR: CenSoloLTR R package source not found.${NC}"
-    echo "Expected DESCRIPTION at: ${CENSOLOLTR_SRC}/DESCRIPTION"
+# Check LTRtrace source
+if [ ! -f "${LTRTRACE_SRC}/DESCRIPTION" ]; then
+    echo -e "${RED}ERROR: LTRtrace R package source not found.${NC}"
+    echo "Expected DESCRIPTION at: ${LTRTRACE_SRC}/DESCRIPTION"
     echo "Use -s PATH to specify the correct directory."
     exit 1
 fi
-echo -e "${BLUE}CenSoloLTR source:${NC} ${CENSOLOLTR_SRC}"
+echo -e "${BLUE}LTRtrace source:${NC} ${LTRTRACE_SRC}"
 
 # --- RepeatMasker Libraries auto-detection ---
 if [ -z "${RMB_LIBRARIES}" ]; then
     # Auto-detect from conda environments (common locations)
     for candidate in \
-        "${HOME}/miniconda3/envs/censololtr/share/RepeatMasker/Libraries" \
-        "${HOME}/anaconda3/envs/censololtr/share/RepeatMasker/Libraries" \
-        "/opt/conda/envs/censololtr/share/RepeatMasker/Libraries" \
-        "$(conda info --envs 2>/dev/null | grep censololtr | awk '{print $NF}')/share/RepeatMasker/Libraries"; do
+        "${HOME}/miniconda3/envs/ltrtrace/share/RepeatMasker/Libraries" \
+        "${HOME}/anaconda3/envs/ltrtrace/share/RepeatMasker/Libraries" \
+        "/opt/conda/envs/ltrtrace/share/RepeatMasker/Libraries" \
+        "$(conda info --envs 2>/dev/null | grep ltrtrace | awk '{print $NF}')/share/RepeatMasker/Libraries"; do
         if [ -d "${candidate}" ] && [ -f "${candidate}/Dfam.h5" ]; then
             RMB_LIBRARIES="${candidate}"
             break
@@ -663,7 +663,7 @@ if [ -n "${RMB_LIBRARIES}" ]; then
 else
     echo -e "${YELLOW}RepeatMasker Libraries:${NC} NOT FOUND (use -l PATH to specify)"
     echo -e "${YELLOW}  Container will build but LTR_retriever will need runtime bind-mount:${NC}"
-    echo -e "${YELLOW}    singularity exec --bind /path/to/Libraries:/opt/conda/envs/censololtr/share/RepeatMasker/Libraries ${OUTPUT_SIF} ...${NC}"
+    echo -e "${YELLOW}    singularity exec --bind /path/to/Libraries:/opt/conda/envs/ltrtrace/share/RepeatMasker/Libraries ${OUTPUT_SIF} ...${NC}"
 fi
 
 # Check fakeroot capability
@@ -706,7 +706,7 @@ if [ "${AVAIL_GB}" -lt 5 ]; then
     echo -e "${YELLOW}║  Container build needs ~5 GB of temporary space.${NC}"
     echo -e "${YELLOW}║${NC}"
     echo -e "${YELLOW}║  Use -t to specify a directory with more space:${NC}"
-    echo -e "${YELLOW}║    bash $0 -t /home/users/liurx/tmp_censololtr${NC}"
+    echo -e "${YELLOW}║    bash $0 -t /home/users/liurx/tmp_ltrtrace${NC}"
     echo -e "${YELLOW}╚══════════════════════════════════════════════════════════════╝${NC}"
     echo ""
     echo -e "${RED}Aborting — insufficient disk space.${NC}"
@@ -734,11 +734,11 @@ echo -e "Container:  ${GREEN}${OUTPUT_SIF}${NC}"
 echo ""
 echo "Verify:"
 echo "  singularity exec ${OUTPUT_SIF} Rscript -e 'library(Biostrings); cat(\"OK\n\")'"
-echo "  singularity exec ${OUTPUT_SIF} CenSoloLTR --version"
+echo "  singularity exec ${OUTPUT_SIF} LTRtrace --version"
 echo "  singularity exec ${OUTPUT_SIF} which ltr_finder blastn cd-hit"
 echo ""
 echo "Run pipeline:"
-echo "  singularity exec ${OUTPUT_SIF} CenSoloLTR -g genome.fa -c cen.bed -o ./output -t 16"
+echo "  singularity exec ${OUTPUT_SIF} LTRtrace -g genome.fa -c cen.bed -o ./output -t 16"
 echo ""
 
 # Cleanup tmpdir if empty

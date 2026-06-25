@@ -1,5 +1,5 @@
 # =========================================================================
-# CenSoloLTR - Phase 3: CEN/Peri-CEN Annotation Extraction
+# LTRtrace - Phase 3: CEN/Peri-CEN Annotation Extraction
 # =========================================================================
 # Step 5: Filter Full_Integrated.tsv to CEN/Peri-CEN regions only
 # Step 6: Extract FASTA sequences with rich headers
@@ -10,7 +10,7 @@
 #' Filters the full annotation table to retain only Centromere and
 #' Pericentromere region entries, sorted by chromosome and position.
 #'
-#' @param params CenSoloLTRConfig object
+#' @param params LTRtraceConfig object
 #' @export
 step5_extract_cen_annotations <- function(params) {
   step_header(params, "5", 10, "Extract CEN/Peri-CEN Annotations")
@@ -60,7 +60,7 @@ step5_extract_cen_annotations <- function(params) {
 #' extract FASTA sequences. Headers follow the format:
 #' {Sample}|{Superfamily}|{Region}|{solo_id}
 #'
-#' @param params CenSoloLTRConfig object
+#' @param params LTRtraceConfig object
 #' @export
 step6_extract_cen_fasta <- function(params) {
   step_header(params, "6", 11, "Extract CEN/Peri-CEN FASTA Sequences")

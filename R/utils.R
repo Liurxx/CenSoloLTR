@@ -1,5 +1,5 @@
 # =========================================================================
-# CenSoloLTR - Utility Functions
+# LTRtrace - Utility Functions
 # =========================================================================
 
 #' Safe wrapper for system() calls to external tools
@@ -36,7 +36,7 @@ run_external <- function(cmd, wd = NULL, stderr_log = NULL,
   # Prepend conda env bin to PATH so LTR_retriever and other tools
   # can find their dependencies (RepeatMasker, etc.) in the env
   cmd_final <- cmd
-  conda_bin <- getOption("censololtr_conda_bin", NULL)
+  conda_bin <- getOption("ltrtrace_conda_bin", NULL)
   if (!is.null(conda_bin) && nzchar(conda_bin) && dir.exists(conda_bin)) {
     cmd_final <- sprintf("export PATH=%s:$PATH; %s", shQuote(conda_bin), cmd_final)
   }
@@ -73,7 +73,7 @@ run_external <- function(cmd, wd = NULL, stderr_log = NULL,
 init_debug_log <- function(dir_path, phase_name) {
   dir.create(dir_path, showWarnings = FALSE, recursive = TRUE)
   log_file <- file.path(dir_path, sprintf(".debug_%s.log", phase_name))
-  cat(sprintf("# CenSoloLTR Debug Log — %s\n", phase_name),
+  cat(sprintf("# LTRtrace Debug Log — %s\n", phase_name),
       sprintf("# Started: %s\n", Sys.time()),
       file = log_file, sep = "", append = FALSE)
   return(log_file)

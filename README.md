@@ -1,10 +1,10 @@
-# CenSoloLTR v1.1.0
+# LTRtrace v1.1.0
 
-**Genome-Centered SoloLTR Annotation Pipeline for Centromere Regions**
+**Tracing LTR Retrotransposons by Integrating Intact LTR-RT Annotation, Reusable LTR Library Construction, Taxonomic Classification, and Automated SoloLTR Detection**
 
-An integrated bioinformatics pipeline for *de novo* LTR retrotransposon annotation, soloLTR detection, and centromere/pericentromere/arm region analysis.
+LTRtrace was designed to trace LTR retrotransposons by integrating intact LTR-RT annotation, reusable LTR library construction, taxonomic classification, and automated SoloLTR detection. Starting from a genome FASTA and centromere BED file, the pipeline executes 6 phases (10 steps) with *de novo* LTR annotation and centromere/pericentromere/arm region analysis.
 
-![Pipeline Flowchart](CenSoloLTR_Pipeline_Flowchart.png)
+![Pipeline Flowchart](LTRtrace_Pipeline_Flowchart.png)
 
 ## Overview
 
@@ -21,7 +21,7 @@ Starting from a genome FASTA file and a centromere BED file, the pipeline execut
 
 ## System Compatibility & Recommended Approach
 
-CenSoloLTR depends on numerous bioinformatics tools installed via conda/mamba from **conda-forge** and **bioconda** channels. These pre-compiled packages are built against **glibc >= 2.28**, making them incompatible with older Linux distributions:
+LTRtrace depends on numerous bioinformatics tools installed via conda/mamba from **conda-forge** and **bioconda** channels. These pre-compiled packages are built against **glibc >= 2.28**, making them incompatible with older Linux distributions:
 
 | Distribution | glibc Version | Compatible? |
 |-------------|---------------|-------------|
@@ -37,23 +37,23 @@ On incompatible systems, the `install_dependencies.sh` script will fail during d
 
 ```bash
 # 1. Clone the repository
-git clone https://github.com/Liurxx/CenSoloLTR.git
-cd CenSoloLTR
+git clone https://github.com/Liurxx/LTRtrace.git
+cd LTRtrace
 
 # 2. Build the container (10–25 min, no root required)
 bash build_singularity_container.sh
 
 # 3. Run the pipeline
-singularity exec censololtr_v1.1.0.sif CenSoloLTR -g genome.fa -c cen.bed -o ./output -t 16
+singularity exec ltrtrace_v1.1.0.sif LTRtrace -g genome.fa -c cen.bed -o ./output -t 16
 ```
 
 The build script automatically handles:
 - Docker registry mirror detection (works in China mainland without extra configuration)
 - Miniforge3 + mamba installation (~100 bioinformatics packages)
-- CenSoloLTR R package installation with CLI wrapper
-- Output: `censololtr_v1.1.0.sif` (~1.5 GB, self-contained)
+- LTRtrace R package installation with CLI wrapper
+- Output: `ltrtrace_v1.1.0.sif` (~1.5 GB, self-contained)
 
-**Pre-built container:** If you prefer to skip the build process, a pre-built Singularity image (`censololtr_v1.1.0.sif`) is available upon request. Please contact the corresponding author of the CenSoloLTR publication.
+**Pre-built container:** If you prefer to skip the build process, a pre-built Singularity image (`ltrtrace_v1.1.0.sif`) is available upon request. Please contact the corresponding author of the LTRtrace publication.
 
 **Prerequisite:** [Singularity](https://docs.sylabs.io/guides/latest/user-guide/) or Apptainer must be available. On HPC clusters: `module load singularity`.
 
@@ -61,7 +61,7 @@ Custom build options:
 ```bash
 bash build_singularity_container.sh -t /path/to/temp -s /path/to/source
 # -t: temp build directory (needs ~5 GB)
-# -s: CenSoloLTR R package source path
+# -s: LTRtrace R package source path
 # -o: output SIF path
 ```
 
@@ -78,8 +78,8 @@ If your system meets the glibc requirement, you may use the direct installation 
 ### Step 1: Clone the Repository
 
 ```bash
-git clone https://github.com/Liurxx/CenSoloLTR.git
-cd CenSoloLTR
+git clone https://github.com/Liurxx/LTRtrace.git
+cd LTRtrace
 ```
 
 ### Step 2: Install Dependencies
@@ -92,24 +92,24 @@ bash install_dependencies.sh
 
 This script will:
 
-1. Create a conda environment named `censololtr` with all required bioinformatics tools (minimum version requirements, not pinned to exact versions)
+1. Create a conda environment named `ltrtrace` with all required bioinformatics tools (minimum version requirements, not pinned to exact versions)
 2. Install required R packages (CRAN + Bioconductor)
-3. Build and install the **CenSoloLTR** R package from source
-4. Create a `CenSoloLTR` CLI wrapper in the conda environment's `bin/` directory
+3. Build and install the **LTRtrace** R package from source
+4. Create a `LTRtrace` CLI wrapper in the conda environment's `bin/` directory
 
 **Prerequisite:** [Miniconda3](https://docs.conda.io/en/latest/miniconda.html) or Anaconda3 must be installed.
 
 ### Step 3: Activate the Environment
 
 ```bash
-conda activate censololtr
+conda activate ltrtrace
 ```
 
 ### Step 4: Verify Installation
 
 ```bash
-CenSoloLTR --version
-CenSoloLTR --help
+LTRtrace --version
+LTRtrace --help
 ```
 
 If both commands print expected output, the installation is complete.
@@ -153,13 +153,13 @@ If both commands print expected output, the installation is complete.
 The package includes *Arabidopsis thaliana* (Col-0) chromosome 1 as example data. After installation, you can test the pipeline immediately:
 
 ```bash
-conda activate censololtr
+conda activate ltrtrace
 
 # Locate example data
-EXAMPLE_DIR=$(Rscript -e 'cat(system.file("extdata/example", package="CenSoloLTR"))')
+EXAMPLE_DIR=$(Rscript -e 'cat(system.file("extdata/example", package="LTRtrace"))')
 
 # Run pipeline on Chr1 (use Fabaceae DB to skip CD-HIT)
-CenSoloLTR \
+LTRtrace \
   -g "${EXAMPLE_DIR}/Chr1.fa" \
   -c "${EXAMPLE_DIR}/Chr1_Cen.bed" \
   -o ./Chr1_output \
@@ -170,30 +170,30 @@ CenSoloLTR \
 ### Basic Run (your own data)
 
 ```bash
-conda activate censololtr
-CenSoloLTR -g genome.fa -c cen.bed -o ./output -t 16
+conda activate ltrtrace
+LTRtrace -g genome.fa -c cen.bed -o ./output -t 16
 ```
 
 ### Skip De Novo Detection (use pre-existing Phase 0 results)
 
 ```bash
-CenSoloLTR -g genome.fa -c cen.bed -o ./output --skip-phase0
+LTRtrace -g genome.fa -c cen.bed -o ./output --skip-phase0
 ```
 
 ### Use Pre-built Fabaceae NR LTR Library (skips CD-HIT)
 
 ```bash
 # List available Fabaceae species
-CenSoloLTR --list-db
+LTRtrace --list-db
 
 # Run with a specific Fabaceae database
-CenSoloLTR -g genome.fa -c cen.bed -o ./output --fabaceae-db A17
+LTRtrace -g genome.fa -c cen.bed -o ./output --fabaceae-db A17
 ```
 
 ### Run Specific Steps Only
 
 ```bash
-CenSoloLTR -g genome.fa -c cen.bed -o ./output --only-step 3,4,5
+LTRtrace -g genome.fa -c cen.bed -o ./output --only-step 3,4,5
 ```
 
 ---
@@ -220,8 +220,8 @@ The package ships with a small example dataset for testing and demonstration:
 Access from R:
 
 ```r
-system.file("extdata/example/Chr1.fa", package = "CenSoloLTR")
-system.file("extdata/example/Chr1_Cen.bed", package = "CenSoloLTR")
+system.file("extdata/example/Chr1.fa", package = "LTRtrace")
+system.file("extdata/example/Chr1_Cen.bed", package = "LTRtrace")
 ```
 
 ---
@@ -259,7 +259,7 @@ output/
 |------|---------|-------------|
 | `-g, --genome` | *(required)* | Genome FASTA file |
 | `-c, --cen-bed` | *(required)* | Centromere BED file |
-| `-o, --outdir` | `./CenSoloLTR_output` | Output directory |
+| `-o, --outdir` | `./LTRtrace_output` | Output directory |
 | `-t, --threads` | `8` | CPU threads (BLAST, CD-HIT) |
 | `--ltr-threads` | `threads` | Threads for LTR detection tools |
 | `--conda-env` | — | Conda environment name/path for tool resolution |
@@ -285,11 +285,11 @@ output/
 
 ## Fabaceae Pre-built Database
 
-CenSoloLTR bundles 18 pre-computed NR LTR libraries from published Fabaceae genomes. Using `--fabaceae-db <ID>` skips CD-HIT clustering (Step 2) entirely.
+LTRtrace bundles 18 pre-computed NR LTR libraries from published Fabaceae genomes. Using `--fabaceae-db <ID>` skips CD-HIT clustering (Step 2) entirely.
 
 ```bash
-CenSoloLTR --list-db          # List all 18 available species
-CenSoloLTR --db-info A17      # Show genome details for one species
+LTRtrace --list-db          # List all 18 available species
+LTRtrace --db-info A17      # Show genome details for one species
 ```
 
 ---

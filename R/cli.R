@@ -1,16 +1,16 @@
 # =========================================================================
-# CenSoloLTR - Command-Line Interface (bioinformatics-style)
+# LTRtrace - Command-Line Interface (bioinformatics-style)
 # =========================================================================
 
 #' Print package banner
 #' @export
 print_banner <- function() {
-  ver <- tryCatch(as.character(utils::packageVersion("CenSoloLTR")),
+  ver <- tryCatch(as.character(utils::packageVersion("LTRtrace")),
                    error = function(e) "unknown")
   cat(sprintf('
 ╔══════════════════════════════════════════════════════════════╗
-║  CenSoloLTR v%-47s║
-║  Genome-Centered SoloLTR Annotation for Centromere Regions  ║
+║  LTRtrace v%-47s║
+║  Tracing LTR Retrotransposons  ║
 ║                                                             ║
 ║  Input:  Genome FASTA + Centromere BED                      ║
 ║  Output: SoloLTR classification, annotation, FASTA, plots   ║
@@ -24,8 +24,8 @@ build_option_parser <- function() {
   optparse::OptionParser(
     usage = "%prog [options] -g <genome.fa> -c <cen.bed> -o <outdir>",
     description = paste0(
-      "CenSoloLTR -- An integrated bioinformatics pipeline for de novo LTR\n",
-      "annotation, soloLTR detection, and centromere/pericentromere analysis.\n\n",
+      "LTRtrace -- Tracing LTR retrotransposons by integrating intact LTR-RT\n",
+      "annotation, reusable LTR library construction, taxonomic classification, and automated SoloLTR detection.\n\n",
       "Starting from a genome FASTA and a centromere BED file, the pipeline\n",
       "executes 5 phases (10 steps) to produce:\n",
       "  - SoloLTR classification (BLAST against non-redundant LTR library)\n",
@@ -38,14 +38,14 @@ build_option_parser <- function() {
     epilogue = paste0(
       "\nExamples:\n",
       "  # Minimal run:\n",
-      "  CenSoloLTR -g genome.fa -c cen.bed -o ./output\n\n",
+      "  LTRtrace -g genome.fa -c cen.bed -o ./output\n\n",
       "  # With custom threads and tool paths:\n",
-      "  CenSoloLTR -g genome.fa -c cen.bed -o ./output -t 32 \\\n",
+      "  LTRtrace -g genome.fa -c cen.bed -o ./output -t 32 \\\n",
       "    --tesorter /opt/TEsorter/TEsorter --blastn /usr/bin/blastn\n\n",
       "  # Skip de novo LTR detection (use pre-existing results):\n",
-      "  CenSoloLTR -g genome.fa -c cen.bed -o ./output --skip-phase0\n\n",
+      "  LTRtrace -g genome.fa -c cen.bed -o ./output --skip-phase0\n\n",
       "  # Run only specific steps:\n",
-      "  CenSoloLTR -g genome.fa -c cen.bed -o ./output --only-step 3,4,5\n\n",
+      "  LTRtrace -g genome.fa -c cen.bed -o ./output --only-step 3,4,5\n\n",
       "Note:\n",
       "  Required external tools: ltr_finder, gt (genometools), LTR_retriever,\n",
       "  TEsorter, seqtk, cd-hit, BLAST+ (makeblastdb, blastn).\n",
@@ -65,9 +65,9 @@ build_option_parser <- function() {
         help = "[Required] Centromere region BED file (chr\\tstart\\tend)"
       ),
       optparse::make_option(
-        c("-o", "--outdir"), type = "character", default = "./CenSoloLTR_output",
+        c("-o", "--outdir"), type = "character", default = "./LTRtrace_output",
         metavar = "DIR",
-        help = "Output directory [default: ./CenSoloLTR_output]"
+        help = "Output directory [default: ./LTRtrace_output]"
       ),
 
       # ---- Threads / Performance ----
@@ -86,7 +86,7 @@ build_option_parser <- function() {
       optparse::make_option(
         "--conda-env", type = "character", default = NULL,
         metavar = "NAME_OR_PATH",
-        help = "Conda environment name or path for tool resolution. If set, tools are resolved from <env>/bin/ first. Use 'censololtr' for the latest toolset (ltr_finder=1.07, LTR_FINDER_parallel=1.4, LTR_HARVEST_parallel=1.3, gt=1.6.6, LTR_retriever=3.0.5, TEsorter=1.5.1)"
+        help = "Conda environment name or path for tool resolution. If set, tools are resolved from <env>/bin/ first. Use 'ltrtrace' for the latest toolset (ltr_finder=1.07, LTR_FINDER_parallel=1.4, LTR_HARVEST_parallel=1.3, gt=1.6.6, LTR_retriever=3.0.5, TEsorter=1.5.1)"
       ),
       optparse::make_option(
         "--ltr-finder", type = "character", default = "auto",
@@ -268,7 +268,7 @@ parse_cli_args <- function(args = commandArgs(trailingOnly = TRUE)) {
 
   # Handle --version / -v (before optparse, no required args needed)
   if (any(c("--version", "-v") %in% args)) {
-    cat("CenSoloLTR version ", as.character(utils::packageVersion("CenSoloLTR")), "\n", sep = "")
+    cat("LTRtrace version ", as.character(utils::packageVersion("LTRtrace")), "\n", sep = "")
     quit(status = 0)
   }
 
@@ -302,7 +302,7 @@ parse_cli_args <- function(args = commandArgs(trailingOnly = TRUE)) {
 
   # --version (when passed alongside other args, post-optparse fallback)
   if (isTRUE(opt$version)) {
-    cat("CenSoloLTR version ", as.character(utils::packageVersion("CenSoloLTR")), "\n", sep = "")
+    cat("LTRtrace version ", as.character(utils::packageVersion("LTRtrace")), "\n", sep = "")
     quit(status = 0)
   }
 
@@ -378,7 +378,7 @@ parse_cli_args <- function(args = commandArgs(trailingOnly = TRUE)) {
   # ---- Conda environment resolution ----
   conda_env <- opt[["conda-env"]]
   if (!is.null(conda_env)) {
-    # Check if it's a name (e.g. "censololtr_v2") or a path (e.g. "/path/to/env")
+    # Check if it's a name (e.g. "ltrtrace_v2") or a path (e.g. "/path/to/env")
     if (dir.exists(conda_env)) {
       conda_bin <- file.path(conda_env, "bin")
     } else {
@@ -397,7 +397,7 @@ parse_cli_args <- function(args = commandArgs(trailingOnly = TRUE)) {
     if (dir.exists(conda_bin)) {
       params$conda_env <- conda_env
       params$conda_bin <- conda_bin
-      options(censololtr_conda_bin = conda_bin)
+      options(ltrtrace_conda_bin = conda_bin)
     } else {
       warning("Conda environment '", conda_env, "' not found. Falling back to PATH.")
     }
@@ -509,7 +509,7 @@ parse_cli_args <- function(args = commandArgs(trailingOnly = TRUE)) {
   }
 
   # ---- Derived paths ----
-  params$pkg_root  <- system.file(package = "CenSoloLTR")
+  params$pkg_root  <- system.file(package = "LTRtrace")
   params$tools_dir <- file.path(params$pkg_root, "scripts")
 
   params$find_ltr_pl    <- find_candidates("find_LTR.pl",  params$ltr_retriever_dir,
@@ -543,7 +543,7 @@ parse_cli_args <- function(args = commandArgs(trailingOnly = TRUE)) {
     stop("BLAST+ not found. Specify --blastn PATH and --makeblastdb PATH.")
   }
 
-  class(params) <- c("CenSoloLTRConfig", class(params))
+  class(params) <- c("LTRtraceConfig", class(params))
   return(params)
 }
 

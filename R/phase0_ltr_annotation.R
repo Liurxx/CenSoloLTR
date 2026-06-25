@@ -1,5 +1,5 @@
 # =========================================================================
-# CenSoloLTR - Phase 0: De Novo LTR Annotation
+# LTRtrace - Phase 0: De Novo LTR Annotation
 # =========================================================================
 # Steps 0a-0e:
 #   0a: LTR_FINDER_parallel  → de novo LTR detection (SCN output)
@@ -41,7 +41,7 @@ merge_scn_files <- function(scn_files, out_file) {
 #' Uses the LTR_FINDER_parallel Perl wrapper to split the genome, run
 #' ltr_finder on each chunk in parallel, and merge results into SCN format.
 #'
-#' @param params CenSoloLTRConfig object
+#' @param params LTRtraceConfig object
 #' @export
 step0a_ltr_finder <- function(params) {
   step_header(params, "0a", 1, "LTR_FINDER (LTR_FINDER_parallel)")
@@ -114,7 +114,7 @@ step0a_ltr_finder <- function(params) {
 #' Uses the LTR_HARVEST_parallel wrapper to split the genome, run
 #' gt ltrharvest on each chunk in parallel, and merge into SCN format.
 #'
-#' @param params CenSoloLTRConfig object
+#' @param params LTRtraceConfig object
 #' @export
 step0b_ltr_harvest <- function(params) {
   step_header(params, "0b", 2, "LTR_HARVEST (LTR_HARVEST_parallel)")
@@ -187,7 +187,7 @@ step0b_ltr_harvest <- function(params) {
 #'
 #' Outputs: .pass.list, .pass.list.gff3, .out, .LTRlib.fa
 #'
-#' @param params CenSoloLTRConfig object
+#' @param params LTRtraceConfig object
 #' @export
 step0c_ltr_retriever <- function(params) {
   step_header(params, "0c", 3, "Merge SCN + LTR_retriever")
@@ -360,7 +360,7 @@ step0c_ltr_retriever <- function(params) {
 #' Uses seqtk to extract intact LTR sequences from the genome based on
 #' pass.list coordinates, then classifies them with TEsorter.
 #'
-#' @param params CenSoloLTRConfig object
+#' @param params LTRtraceConfig object
 #' @export
 step0d_tesorter <- function(params) {
   step_header(params, "0d", 4, "seqtk extract + TEsorter classification")
@@ -447,7 +447,7 @@ step0d_tesorter <- function(params) {
 #' For LTR_retriever v2.9.x, the RM .out file is generated first if missing.
 #' For v3.x with find_LTR.pl available, that pre-processing step is included.
 #'
-#' @param params CenSoloLTRConfig object
+#' @param params LTRtraceConfig object
 #' @export
 step0e_sololtr_detect <- function(params) {
   step_header(params, "0e", 5, "SoloLTR Detection (solo_finder.pl)")

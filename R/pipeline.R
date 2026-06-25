@@ -1,8 +1,8 @@
 # =========================================================================
-# CenSoloLTR - Pipeline Orchestrator
+# LTRtrace - Pipeline Orchestrator
 # =========================================================================
 
-#' Run the complete CenSoloLTR pipeline
+#' Run the complete LTRtrace pipeline
 #'
 #' This is the main entry point. It parses CLI arguments, sets up the
 #' output directory, and executes the 5-phase / 10-step pipeline.
@@ -17,10 +17,10 @@
 #' @examples
 #' \dontrun{
 #' # CLI mode (from shell):
-#' # Rscript -e "CenSoloLTR::run_pipeline()" -- -g genome.fa -c cen.bed -o ./out
+#' # Rscript -e "LTRtrace::run_pipeline()" -- -g genome.fa -c cen.bed -o ./out
 #'
 #' # Programmatic mode:
-#' params <- CenSoloLTR::run_pipeline(c(
+#' params <- LTRtrace::run_pipeline(c(
 #'   "-g", "genome.fa", "-c", "cen.bed", "-o", "./output", "-t", "16"
 #' ))
 #' }
@@ -129,7 +129,7 @@ run_pipeline <- function(args = commandArgs(trailingOnly = TRUE)) {
 
   # ---- Final summary ----
   log_msg(params, "\n", rep("=", 62))
-  log_msg(params, "  CenSoloLTR Pipeline Completed Successfully")
+  log_msg(params, "  LTRtrace Pipeline Completed Successfully")
   log_msg(params, rep("=", 62))
   log_msg(params, sprintf("  All outputs saved under: %s", params$outdir))
   log_msg(params, sprintf("  - Phase 0: %s", dirs$phase0))
