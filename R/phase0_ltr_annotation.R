@@ -249,6 +249,10 @@ step0c_ltr_retriever <- function(params) {
                              paste0(sample, ".genome.fasta.LTRlib.fa"))
   mod_ltrlib_fa <- file.path(params$dirs$retriever,
                              paste0(sample, ".genome.fasta.mod.LTRlib.fa"))
+  mod_out_file  <- file.path(params$dirs$retriever,
+                             paste0(sample, ".genome.fasta.mod.out"))
+  out_file      <- file.path(params$dirs$retriever,
+                             paste0(sample, ".genome.fasta.out"))
 
   cmd <- sprintf(
     "%s -threads %d -genome %s.genome.fasta -inharvest %s.rawLTR.scn",
@@ -259,10 +263,12 @@ step0c_ltr_retriever <- function(params) {
   )
 
   # Launch LTR_retriever in background, then poll for core outputs.
-  # LTR_retriever produces pass.list and LTRlib.fa before the
-  # time-consuming LAI step. Once those files are ready AND stable
-  # (not still being written), terminate LTR_retriever to skip LAI.
+  # LTR_retriever produces pass.list, LTRlib.fa, and .out (RepeatMasker)
+  # before the time-consuming LAI step. Once those files are ready AND
+  # stable (not still being written), terminate LTR_retriever to skip LAI.
   # If LTR_retriever finishes on its own first, return its exit code.
+  # The .out/.mod.out file is essential for step 0e (soloLTR detection);
+  # waiting for it here guarantees it exists without a fallback RepeatMasker run.
   max_wait <- if (is.finite(params$ltr_retriever_timeout) &&
                   params$ltr_retriever_timeout > 0) {
     sprintf("if [ $elapsed -ge %d ]; then kill $pid 2>/dev/null; sleep 10; kill -9 $pid 2>/dev/null; wait $pid 2>/dev/null; exit 124; fi;",
@@ -272,12 +278,14 @@ step0c_ltr_retriever <- function(params) {
   # Two-phase detection: (1) find files, (2) wait 60s to verify writes complete
   # Use basename() because the shell runs inside params$dirs$retriever (setwd)
   poll_cmd <- sprintf(
-    "{ %s & pid=$!; elapsed=0; while true; do sleep 30; elapsed=$((elapsed+30)); if { [ -s %s ] || [ -s %s ]; } && { [ -s %s ] || [ -s %s ]; }; then sleep 60; if { [ -s %s ] || [ -s %s ]; } && { [ -s %s ] || [ -s %s ]; }; then kill $pid 2>/dev/null; sleep 10; kill -9 $pid 2>/dev/null; wait $pid 2>/dev/null; exit 0; fi; fi; if ! kill -0 $pid 2>/dev/null; then wait $pid; ex=$?; exit ${ex}; fi; %s done; }",
+    "{ %s & pid=$!; elapsed=0; while true; do sleep 30; elapsed=$((elapsed+30)); if { [ -s %s ] || [ -s %s ]; } && { [ -s %s ] || [ -s %s ]; } && { [ -s %s ] || [ -s %s ]; }; then sleep 60; if { [ -s %s ] || [ -s %s ]; } && { [ -s %s ] || [ -s %s ]; } && { [ -s %s ] || [ -s %s ]; }; then kill $pid 2>/dev/null; sleep 10; kill -9 $pid 2>/dev/null; wait $pid 2>/dev/null; exit 0; fi; fi; if ! kill -0 $pid 2>/dev/null; then wait $pid; ex=$?; exit ${ex}; fi; %s done; }",
     cmd,
     shQuote(basename(pass_list)), shQuote(basename(mod_pass_list)),
     shQuote(basename(ltrlib_fa)), shQuote(basename(mod_ltrlib_fa)),
+    shQuote(basename(out_file)), shQuote(basename(mod_out_file)),
     shQuote(basename(pass_list)), shQuote(basename(mod_pass_list)),
     shQuote(basename(ltrlib_fa)), shQuote(basename(mod_ltrlib_fa)),
+    shQuote(basename(out_file)), shQuote(basename(mod_out_file)),
     max_wait
   )
 
@@ -508,8 +516,7 @@ step0e_sololtr_detect <- function(params) {
   if (!rm_ok) {
     log_msg(params, "RepeatMasker .out file not found, running RepeatMasker ...")
     if (!file.exists(genome_fa)) {
-      warning("[Step 0e] Genome symlink not found: ", genome_fa)
-      return(invisible(NULL))
+      stop("[Step 0e] Genome symlink not found: ", genome_fa)
     }
     if (file.exists(rm_out)) file.remove(rm_out)
     if (file.exists(mod_out) && file.info(mod_out)$size == 0) file.remove(mod_out)
@@ -519,12 +526,23 @@ step0e_sololtr_detect <- function(params) {
     )
     run_external(cmd_rm, wd = params$dirs$retriever,
                  stderr_log = debug_log, echo_label = "RepeatMasker")
-    if (!file.exists(rm_out) || file.info(rm_out)$size == 0) {
-      warning("[Step 0e] RepeatMasker failed to produce .out file. ",
-              "Check debug log: ", debug_log)
-      return(invisible(NULL))
+
+    # Check for both .out (v2.9.x naming) and .mod.out (v3.x naming)
+    rm_out_ok  <- file.exists(rm_out) && file.info(rm_out)$size > 0
+    mod_out_ok <- file.exists(mod_out) && file.info(mod_out)$size > 0
+
+    if (mod_out_ok && !rm_out_ok) {
+      file.symlink(basename(mod_out), rm_out)
+      log_msg(params, sprintf("RepeatMasker produced .mod.out — symlinked: %s -> %s",
+                              rm_out, basename(mod_out)))
+      rm_ok <- TRUE
+    } else if (rm_out_ok) {
+      log_msg(params, sprintf("RepeatMasker produced .out: %s", rm_out))
+      rm_ok <- TRUE
+    } else {
+      stop("[Step 0e] RepeatMasker failed to produce .out or .mod.out file. ",
+           "Check debug log: ", debug_log)
     }
-    rm_ok <- TRUE
   }
 
   # ---- Detect solo_finder.pl interface (v2.9.x vs v3.x) ----
